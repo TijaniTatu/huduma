@@ -1,0 +1,54 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  admin:
+    name: Admin frontend (build + lint)
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: AdminFrontend
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - run: npm install
+      - run: npm run lint --if-present
+      - run: npm run build
+
+  server:
+    name: Server (install + syntax check)
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: Server
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - run: npm install
+      # Boot requires Firebase credentials, so in CI we only validate syntax.
+      - run: node --check src/index.js
+      - run: node --check src/manage_users.js
+      - run: node --check config/firebase.js
+      - run: node --check middleware/index.js
+
+  mobile:
+    name: Mobile app (install)
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: ServicesApplicationFrontend
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - run: npm install

@@ -41,14 +41,21 @@ Huduma is a centralized service provision mobile application that connects users
 
     ```bash
     cd Server
-    npm i
+    npm install
+    ```
+    Then create the environment file and add your Firebase Admin service-account
+    JSON (never commit either of these):
+
+    ```bash
+    cp .env.example .env   # then edit values in .env
+    # place your service-account JSON where GOOGLE_APPLICATION_CREDENTIALS points
     ```
 
     For the admin:
 
     ```bash
-    cd Admin
-    npm i
+    cd AdminFrontend
+    npm install
     ```
 
 4. **Configure firebase:**
@@ -71,16 +78,15 @@ Huduma is a centralized service provision mobile application that connects users
 
     ```bash
     cd Server
-    cd src
-    node index.js
+    npm start
     ```
 
 * For the admin:
 
     ```bash
-    cd Admin
-    npm start
-    ````
+    cd AdminFrontend
+    npm run dev
+    ```
 
 ### Usage Examples
 
