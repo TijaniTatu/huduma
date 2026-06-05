@@ -6,7 +6,6 @@
     "orientation": "portrait",
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "light",
-    "entryPoint": "./App.js",
     "plugins": [
       [
         "expo-image-picker",
@@ -33,7 +32,8 @@
         {
           "iCloudContainerEnvironment": "Production"
         }
-      ]
+      ],
+      "@react-native-community/datetimepicker"
     ],
     "splash": {
       "image": "./assets/splash.png",
