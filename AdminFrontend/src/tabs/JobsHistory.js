@@ -1,3 +1,4 @@
+import { API_BASE } from '../config';
 import React, { useEffect, useState } from 'react';
 import { Box, Typography, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, Paper, Button, IconButton, CircularProgress, Tab } from '@mui/material';
 import { Link } from 'react-router-dom';
@@ -10,7 +11,7 @@ export default function JobsHistory() {
     const [loading, setLoading] = useState(true);
 
     useEffect(() => {
-        fetch('http://localhost:3000/admin/jobhistory')
+        fetch(`${API_BASE}/admin/jobhistory`)
             .then(resp => resp.json())
             .then(data => {
                 setData(data);

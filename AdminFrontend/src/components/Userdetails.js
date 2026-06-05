@@ -1,3 +1,4 @@
+import { API_BASE } from '../config';
 import './components.css'
 import React, { useEffect, useState } from 'react';
 import { useParams } from 'react-router-dom';
@@ -11,7 +12,7 @@ function UserDetails() {
   useEffect(() => {
     console.log("User Id is", uid)
     // Fetch user details when component mounts
-    fetch(`http://localhost:3000/admin/user/${uid}`, { method: 'GET' })
+    fetch(`${API_BASE}/admin/user/${uid}`, { method: 'GET' })
 
       .then(response => response.json())
 
@@ -27,7 +28,7 @@ function UserDetails() {
   }, [uid]);
 
   const fetchUser = async () => {
-    fetch(`http://localhost:3000/admin/user/${uid}`, { method: 'GET' })
+    fetch(`${API_BASE}/admin/user/${uid}`, { method: 'GET' })
 
       .then(response => response.json())
 
@@ -44,7 +45,7 @@ function UserDetails() {
 
   const handleDeleteUser = async () => {
     setLoading(true);
-    fetch(`http://localhost:3000/admin/deleteuser/${uid}`, { method: 'GET' })
+    fetch(`${API_BASE}/admin/deleteuser/${uid}`, { method: 'GET' })
       .then(resp => {
         alert('User Deleted');
         setLoading(false);
@@ -57,7 +58,7 @@ function UserDetails() {
 
   const handleBan = async () => {
     setLoading(true);
-    fetch(`http://localhost:3000/admin/banuser/${uid}`, { method: 'GET' })
+    fetch(`${API_BASE}/admin/banuser/${uid}`, { method: 'GET' })
       .then(resp => {
         alert('User Banned');
         fetchUser();
@@ -71,7 +72,7 @@ function UserDetails() {
 
   const handleUnban = async () => {
     setLoading(true);
-    fetch(`http://localhost:3000/admin/banuser/${uid}`, { method: 'GET' })
+    fetch(`${API_BASE}/admin/banuser/${uid}`, { method: 'GET' })
       .then(resp => {
         alert('User Banned');
         fetchUser();

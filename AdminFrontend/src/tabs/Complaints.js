@@ -1,3 +1,4 @@
+import { API_BASE } from '../config';
 import React, { useEffect, useState } from 'react';
 import { Box, Typography, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, Paper, Button, IconButton, CircularProgress, Tab } from '@mui/material';
 import { Link } from 'react-router-dom';
@@ -11,7 +12,7 @@ export default function Complaints() {
     const [loading, setLoading] = useState(true);
 
     useEffect(() => {
-        fetch('http://localhost:3000/admin/complaints')
+        fetch(`${API_BASE}/admin/complaints`)
             .then(resp => resp.json())
             .then(data => {
                 setComplains(data);
@@ -21,9 +22,9 @@ export default function Complaints() {
     }, [])
 
     const clearComplaint = async (complaint_id) => {
-        fetch(`http://localhost:3000/admin/clearcomplaint/${complaint_id}`)
+        fetch(`${API_BASE}/admin/clearcomplaint/${complaint_id}`)
             .then(()=>{
-                fetch('http://localhost:3000/admin/complaints')
+                fetch(`${API_BASE}/admin/complaints`)
                 .then(resp => resp.json())
                 .then(data => {
                     setComplains(data);

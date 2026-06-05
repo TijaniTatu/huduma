@@ -1,5 +1,6 @@
 // src/components/Dashboard.js
 
+import { API_BASE } from '../../config';
 import React, { useState, useEffect } from 'react';
 import { Box, Typography } from '@mui/material';
 import SummaryCard from './SummaryCards'; // Assuming you have a SummaryCard component
@@ -22,7 +23,7 @@ function Dashboard() {
   ];
 
   const getWorkerDistributionData = async () => {
-    fetch('http://localhost:3000/admin/getworkerdistribution')
+    fetch(`${API_BASE}/admin/getworkerdistribution`)
       .then(res => res.json())
       .then(data => {
         console.log(data);
@@ -46,7 +47,7 @@ function Dashboard() {
   }
 
   const fetchJobHistory = async () => {
-    fetch('http://localhost:3000/admin/jobhistory')
+    fetch(`${API_BASE}/admin/jobhistory`)
       .then(resp => resp.json())
       .then(data => {
         let electricians = 0;
@@ -78,7 +79,7 @@ function Dashboard() {
 
   useEffect(() => {
     // Fetch total users count
-    fetch('http://localhost:3000/admin/countusers', { method: 'GET' })
+    fetch(`${API_BASE}/admin/countusers`, { method: 'GET' })
       .then(response => response.json())
       .then(data => {
         setTotalUsers(data);
@@ -86,7 +87,7 @@ function Dashboard() {
       .catch(error => console.error('Error fetching total users:', error));
 
     // Fetch accepted requests count
-    fetch('http://localhost:3000/admin/countacceptedrequests', { method: 'GET' })
+    fetch(`${API_BASE}/admin/countacceptedrequests`, { method: 'GET' })
       .then(response => response.json())
       .then(data => {
         setAcceptedRequests(data.totalAcceptedRequests);
@@ -94,7 +95,7 @@ function Dashboard() {
       .catch(error => console.error('Error fetching accepted requests:', error));
 
     // // Fetch workers data and count
-    // fetch('http://localhost:3000/admin/workers', { method: 'GET' })
+    // fetch(`${API_BASE}/admin/workers`, { method: 'GET' })
     //   .then(response => response.json())
     //   .then(data => {
     //     setWorkerCount(data.count);
@@ -106,7 +107,7 @@ function Dashboard() {
     //   })
     //   .catch(error => console.error('Error fetching workers:', error));
 
-    fetch('http://localhost:3000/admin/getworkers', { method: 'GET' })
+    fetch(`${API_BASE}/admin/getworkers`, { method: 'GET' })
       .then(response => response.json())
       .then(data => {
         setWorkerCount(data.count);
