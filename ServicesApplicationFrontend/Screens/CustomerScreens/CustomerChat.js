@@ -1,12 +1,24 @@
 import { View, Text, Alert } from 'react-native';
 import React, { useState, useEffect, useCallback } from 'react';
 import { Appbar } from 'react-native-paper';
-import { GiftedChat, Avatar } from 'react-native-gifted-chat';
+import { GiftedChat, Avatar, Bubble, Send, InputToolbar } from 'react-native-gifted-chat';
 import { collection, addDoc, query, orderBy, onSnapshot } from 'firebase/firestore';
 
 
 import { AUTH, FIRESTORE_DB } from '../../firebaseConfig';
 import { getChatPartyState } from '../../Services/stateService';
+import { colors } from '../../theme/theme';
+
+const renderBubble = (props) => (
+  <Bubble
+    {...props}
+    wrapperStyle={{ right: { backgroundColor: colors.primary }, left: { backgroundColor: colors.surfaceAlt } }}
+    textStyle={{ right: { color: '#fff' }, left: { color: colors.text } }}
+  />
+);
+const renderInputToolbar = (props) => (
+  <InputToolbar {...props} containerStyle={{ backgroundColor: colors.surface, borderTopColor: colors.border, paddingVertical: 4 }} />
+);
 
 export default function CustomerChat({navigation}) {
   uid = AUTH.currentUser.uid;
@@ -52,11 +64,11 @@ export default function CustomerChat({navigation}) {
 
 
   return (
-    <View style={{ flex: 1 }}>
-      <Appbar.Header mode='small' collapsable={true} style={{ backgroundColor: 'white' }}>
+    <View style={{ flex: 1, backgroundColor: colors.background }}>
+      <Appbar.Header mode='small' collapsable={true} style={{ backgroundColor: colors.surface }}>
         <Appbar.BackAction onPress={() => navigation.goBack()} />
-        <Appbar.Content title="Chat With Worker" />
-        <Appbar.Action icon="cog" onPress={() => { navigation.push("Settings") }} />
+        <Appbar.Content title="Chat with worker" titleStyle={{ fontWeight: '700', color: colors.text }} />
+        <Appbar.Action icon="cog-outline" onPress={() => { navigation.push("Settings") }} />
       </Appbar.Header>
       <GiftedChat
         messages={messages}
@@ -66,6 +78,8 @@ export default function CustomerChat({navigation}) {
         }}
         showUserAvatar={false}
         showAvatarForEveryMessage={false}
+        renderBubble={renderBubble}
+        renderInputToolbar={renderInputToolbar}
       />
     </View>
   )

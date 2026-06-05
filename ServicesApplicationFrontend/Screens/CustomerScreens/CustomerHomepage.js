@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { createMaterialBottomTabNavigator } from 'react-native-paper/react-navigation';
-import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
+import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
 import { Alert, StyleSheet, View } from 'react-native';
 import { Text, TextInput, Button, ActivityIndicator, Dialog, Appbar, List, Switch } from 'react-native-paper';
 
@@ -10,6 +10,7 @@ import ActivityScreen from './Activity';
 import { AUTH, FIRESTORE_DB } from '../../firebaseConfig';
 
 import {readCustomerState, writeToCustomerState, clearCustomerState} from '../../Services/stateService'
+import { colors } from '../../theme/theme';
 const Tab = createMaterialBottomTabNavigator();
 
 const CustomerHomepage = ({ navigation }) => {
@@ -29,16 +30,15 @@ const CustomerHomepage = ({ navigation }) => {
 
   return (
     <>
-      <Appbar.Header mode='small' collapsable={true}>
-        <Appbar.BackAction onPress={() => navigation.goBack()} />
-        <Appbar.Content title={username} />
-        <Appbar.Action icon="cog" onPress={() => {navigation.push("Settings")}} />
+      <Appbar.Header mode='small' collapsable={true} style={{ backgroundColor: colors.surface }} statusBarHeight={0}>
+        <Appbar.Content title={username ? `Hi, ${username}` : 'Welcome'} titleStyle={{ fontWeight: '700', color: colors.text }} />
+        <Appbar.Action icon="cog-outline" onPress={() => {navigation.push("Settings")}} />
       </Appbar.Header>
       <Tab.Navigator
         initialRouteName="Jobs"
-        activeColor="#6200ee" // Active tab color (orange)
-        inactiveColor="#888888" // Inactive tab color (grey)
-        barStyle={{ backgroundColor: '#ffffff' }} // Background color of the tab bar
+        activeColor={colors.primary}
+        inactiveColor={colors.textMuted}
+        barStyle={{ backgroundColor: colors.surface }}
       >
         <Tab.Screen
           name="Jobs"

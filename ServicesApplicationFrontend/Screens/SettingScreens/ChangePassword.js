@@ -2,12 +2,14 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import React, { useState, useEffect } from 'react'
 
 import { Alert, StyleSheet, View } from 'react-native';
-import { Text, TextInput, Button, ActivityIndicator, } from 'react-native-paper';
-import { Appbar, List, Switch } from 'react-native-paper';
+import { Text, TextInput, Button, ActivityIndicator } from 'react-native-paper';
 import { updatePassword } from 'firebase/auth';
 import * as LocalAuthentication from 'expo-local-authentication';
 
 import { AUTH } from '../../firebaseConfig';
+import Screen from '../../components/ui/Screen';
+import AppHeader from '../../components/ui/AppHeader';
+import { colors, spacing, radius, typography, shadow } from '../../theme/theme';
 
 export default function ChangePassword({ navigation }) {
 
@@ -15,6 +17,7 @@ export default function ChangePassword({ navigation }) {
   const [newPassword, setNewPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [loading, setLoading] = useState(false);
+  const [show, setShow] = useState(false);
 
   const updateUserPassword = async () => {
     setLoading(true);
@@ -57,64 +60,77 @@ export default function ChangePassword({ navigation }) {
 
   }
 
+  const eye = (
+    <TextInput.Icon icon={show ? 'eye-off-outline' : 'eye-outline'} onPress={() => setShow(!show)} />
+  );
+
   return (
-    <View>
-      <Appbar.Header>
-        <Appbar.BackAction onPress={() => navigation.goBack()} />
-        <Appbar.Content title="Change Password" />
-      </Appbar.Header>
-      {loading ?
-        (<>
-          <ActivityIndicator animating={true} />
-        </>) :
-        (<>
-          <View>
+    <Screen scroll keyboardAvoiding padded={false}>
+      <AppHeader title="Change password" onBack={() => navigation.goBack()} />
+      {loading ? (
+        <View style={styles.loadingBox}>
+          <ActivityIndicator animating={true} color={colors.primary} />
+        </View>
+      ) : (
+        <View style={styles.body}>
+          <Text style={styles.subtitle}>
+            Enter your current password and choose a new one. You'll confirm with biometrics.
+          </Text>
+          <View style={styles.card}>
             <TextInput
-              style={{ ...styles.input, backgroundColor: "white" }}
+              mode="outlined"
+              label="Current password"
               value={oldPassword}
-              label='Old Password'
               onChangeText={(text) => setOldPassword(text)}
-              secureTextEntry={true}
-
+              secureTextEntry={!show}
+              left={<TextInput.Icon icon="lock-outline" />}
+              right={eye}
+              style={styles.input}
+              outlineColor={colors.border}
+              activeOutlineColor={colors.primary}
             />
-
             <TextInput
-              style={{ ...styles.input, backgroundColor: "white" }}
+              mode="outlined"
+              label="New password"
               value={newPassword}
-              label='New Password'
               onChangeText={(text) => setNewPassword(text)}
-              secureTextEntry={true}
-
+              secureTextEntry={!show}
+              left={<TextInput.Icon icon="lock-plus-outline" />}
+              style={styles.input}
+              outlineColor={colors.border}
+              activeOutlineColor={colors.primary}
             />
-
             <TextInput
-              style={{ ...styles.input, backgroundColor: "white" }}
+              mode="outlined"
+              label="Confirm new password"
               value={confirmPassword}
-              label='Confirm Password'
               onChangeText={(text) => setConfirmPassword(text)}
-              secureTextEntry={true}
-
+              secureTextEntry={!show}
+              left={<TextInput.Icon icon="lock-check-outline" />}
+              style={styles.input}
+              outlineColor={colors.border}
+              activeOutlineColor={colors.primary}
             />
-
-            <Button mode='contained' onPress={() => updateUserPassword()}> Change Password  </Button>
-            <Button onPress={() => navigation.push('ForgotPassword')}> Forgot Password </Button>
-
+            <Button mode="contained" onPress={() => updateUserPassword()} style={styles.btn} contentStyle={styles.btnContent} labelStyle={styles.btnLabel}>
+              Change password
+            </Button>
+            <Button mode="text" onPress={() => navigation.push('ForgotPassword')} textColor={colors.textMuted} style={{ marginTop: spacing.xs }}>
+              Forgot password?
+            </Button>
           </View>
-        </>)}
-
-    </View>
+        </View>
+      )}
+    </Screen>
   )
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, justifyContent: "center", marginHorizontal: 30 },
-  input: { marginVertical: 5, borderRadius: 0 },
-  row: {
-    alignItems: "center",
-    flexDirection: "row",
-    marginVertical: 20,
-    justifyContent: "space-between",
-  },
-  textContainer: { alignContent: 'center', alignItems: 'center' }
-
+  body: { paddingHorizontal: spacing.lg, paddingTop: spacing.sm },
+  subtitle: { ...typography.muted, marginBottom: spacing.lg },
+  card: { backgroundColor: colors.surface, borderRadius: radius.lg, padding: spacing.lg, ...shadow.card },
+  input: { marginBottom: spacing.md, backgroundColor: colors.surface },
+  btn: { borderRadius: radius.md, marginTop: spacing.xs },
+  btnContent: { height: 50 },
+  btnLabel: { fontSize: 16, fontWeight: '700' },
+  loadingBox: { padding: spacing.xxl, alignItems: 'center' },
 });

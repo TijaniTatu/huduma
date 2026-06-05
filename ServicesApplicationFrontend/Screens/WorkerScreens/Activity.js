@@ -13,10 +13,11 @@ import * as Notifications from "expo-notifications";
 import axios from 'axios';
 
 import {readWorkerJobState, writeWorkerJobState, clearWorkerJobState} from '../../Services/stateService'
+import { colors, spacing, radius, typography, shadow } from '../../theme/theme';
 
 Notifications.setNotificationHandler({
   handleNotification: async () => ({
-    shouldShowAlert: true,
+    shouldShowBanner: true, shouldShowList: true,
     shouldPlaySound: true,
     shouldSetBadge: true,
   }),
@@ -194,86 +195,82 @@ const Activity = ({ navigation }) => {
 
 
   return (
-    <View style={{ flex: 1 }}>
-                    <TouchableOpacity onPress={() => getActivity()}>
-                <Text style={styles.Information}> Click To Refresh</Text>
-              </TouchableOpacity>
+    <View style={styles.screen}>
       {loading ?
         (
-          <>
-            <ActivityIndicator animating />
-            <View style={styles.row}>
-              <Text style={{ fontSize: 15 }}>No Activity</Text>
-
-            </View>
-          </>
+          <View style={styles.center}>
+            <ActivityIndicator animating size={56} color={colors.primary} />
+            <Text style={styles.muted}>Checking for active jobs…</Text>
+            <Button mode="text" icon="refresh" onPress={() => getActivity()} textColor={colors.primary}>Refresh</Button>
+          </View>
         ) :
         (
-          <View style={{ flex: 1 }}>
+          <ScrollView contentContainerStyle={styles.scroll} showsVerticalScrollIndicator={false}>
             {jobObject ?
               (<>
-                <Card mode='elevated' >
-                  <Card.Title title="Current Job" />
-                  <Card.Content>
-                    <Text>Client {jobObject['clientName']} </Text>
+                <View style={styles.headRow}>
+                  <Text style={styles.heading}>Current job</Text>
+                  <Button mode="text" icon="refresh" onPress={() => getActivity()} textColor={colors.primary} compact>Refresh</Button>
+                </View>
+                <Card mode='elevated' style={styles.card}>
+                  {jobObject['imageURL'] ? <Card.Cover source={{ uri: jobObject['imageURL'] }} style={styles.cover} /> : null}
+                  <Card.Content style={{ paddingTop: spacing.md }}>
+                    <Chip style={styles.serviceChip} textStyle={{ color: colors.primaryDark }} icon="account-hard-hat">{jobObject['ServiceWanted']}</Chip>
+                    <Text style={styles.label}>Client</Text>
+                    <Text style={styles.value}>{jobObject['clientName']}</Text>
+                    <Text style={styles.label}>Description</Text>
+                    <Text style={styles.value}>{jobObject['description']}</Text>
                   </Card.Content>
-                  <Card.Cover source={{ uri: jobObject['imageURL'] }} />
-                  <Card.Content>
-                    <Text variant="bodyMedium"> Description  </Text>
-                    <Text> {jobObject['description']} </Text>
-                    <Chip style={{ marginTop: 10, width: 200 }} icon="account-hard-hat"> {jobObject['ServiceWanted']} </Chip>
-                  </Card.Content>
-                  <Card.Actions>
-                    <Button onPress={() => navigation.push('WorkerChatScreen')}> Chat </Button>
-                    <Button mode='contained' onPress={() => onDeclineJob(jobObject)}> DECLINE </Button>
+                  <Card.Actions style={styles.actionsRow}>
+                    <Button mode="outlined" icon="message-text-outline" onPress={() => navigation.push('WorkerChatScreen')}>Chat</Button>
+                    <Button mode="text" textColor={colors.danger} onPress={() => onDeclineJob(jobObject)}>Decline</Button>
                   </Card.Actions>
                 </Card>
-                <Button mode='contained' onPress={() => openGoogleMaps()}> Open Location </Button>
-                <Button mode='elevated' onPress={() => checkArriveLocation()}> Arrived At Location </Button>
+                <Button mode='contained' icon="map-marker-path" onPress={() => openGoogleMaps()} style={styles.fullBtn} contentStyle={{ height: 48 }}>Open location in maps</Button>
+                <Button mode='contained' icon="map-marker-check-outline" buttonColor={colors.success} onPress={() => checkArriveLocation()} style={styles.fullBtn} contentStyle={{ height: 48 }}>I've arrived</Button>
               </>) :
-              (<>
-              </>)}
-          </View>
+              (
+              <View style={styles.center}>
+                <Chip icon="briefcase-clock-outline" style={styles.idleChip}>No active job</Chip>
+                <Text style={styles.idleTitle}>Nothing in progress</Text>
+                <Text style={styles.muted}>Accept a request to start working.</Text>
+              </View>
+              )}
 
+            {arrived ?
+              (<View style={styles.timerCard}>
+                <Text style={styles.timerLabel}>You've arrived</Text>
+                <Text style={styles.timerValue}>{worktime/1000}s</Text>
+                <Button mode='contained' icon="play" onPressOut={() => setWorking(true)} style={styles.fullBtn} contentStyle={{ height: 48 }}>Start working</Button>
+                <Button mode='outlined' icon="stop" onPress={() => handleFinishWork()} style={styles.fullBtn} contentStyle={{ height: 48 }}>Stop & request payment</Button>
+              </View>) :
+              null}
+          </ScrollView>
         )}
-      {
-        arrived ?
-          (<View>
-            <Text> You Have Arrived </Text>
-            <Button mode='contained' onPressOut={() => setWorking(true)}> Start Working </Button>
-            <Text> {worktime/1000} s </Text>
-            <Button mode='outlined' onPress={() => handleFinishWork()} > Stop Working </Button>
-          </View>) :
-          (<>
-          </>)
-      }
     </View>
   )
 }
 
 
 const styles = StyleSheet.create({
-  container: { flex: 1, marginHorizontal: 20, marginTop: 40 },
-  input: { marginVertical: 5, borderRadius: 0 },
-  row: {
-    alignItems: "center",
-    flexDirection: "row",
-    marginVertical: 20,
-  },
-  textContainer: { alignContent: 'center', alignItems: 'center' },
-  Information: {
-    color: 'purple',
-    fontSize: 15,
-  },
-  textLink: {
-    color: 'orange',
-    marginLeft: 2
-  },
-  image: {
-    width: 300,
-    height: 400,
-    alignSelf: 'center',
-  },
+  screen: { flex: 1, backgroundColor: colors.background },
+  center: { flex: 1, justifyContent: 'center', alignItems: 'center', padding: spacing.xl },
+  scroll: { padding: spacing.lg, paddingBottom: spacing.xxl, flexGrow: 1 },
+  headRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: spacing.sm },
+  heading: { ...typography.h2 },
+  card: { backgroundColor: colors.surface, borderRadius: radius.lg, marginBottom: spacing.md, ...shadow.card },
+  cover: { marginHorizontal: spacing.md, marginTop: spacing.md, borderRadius: radius.md },
+  serviceChip: { alignSelf: 'flex-start', backgroundColor: colors.primaryContainer, marginBottom: spacing.xs },
+  label: { ...typography.label, marginTop: spacing.md, marginBottom: spacing.xs },
+  value: { ...typography.body },
+  actionsRow: { justifyContent: 'space-between' },
+  fullBtn: { borderRadius: radius.md, marginTop: spacing.sm },
+  muted: { ...typography.muted, marginTop: spacing.sm, textAlign: 'center' },
+  idleChip: { backgroundColor: colors.surfaceAlt, marginBottom: spacing.md },
+  idleTitle: { ...typography.h2, marginBottom: spacing.xs },
+  timerCard: { backgroundColor: colors.charcoal, borderRadius: radius.lg, padding: spacing.xl, marginTop: spacing.lg, alignItems: 'center' },
+  timerLabel: { color: 'rgba(255,255,255,0.7)', ...typography.label },
+  timerValue: { color: '#fff', fontSize: 40, fontWeight: '800', marginVertical: spacing.sm },
 });
 
 

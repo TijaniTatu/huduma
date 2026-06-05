@@ -7,6 +7,7 @@ import { AUTH, FIRESTORE_DB } from '../../firebaseConfig';
 import { setDoc, doc, getDoc, collection, onSnapshot, query, where, getDocs, deleteDoc, } from 'firebase/firestore';
 import {writeAskForJobState} from '../../Services/stateService';
 import {CheckCollission, CheckAskService} from '../../Services/collissionService';
+import { colors, spacing, radius, typography, shadow } from '../../theme/theme';
 
 const occupations = [
   { id: '1', name: 'Electrician', icon: require('../../assets/Icons/electrician.png') },
@@ -20,8 +21,10 @@ const occupations = [
 ];
 
 const OccupationItem = ({ name, icon, onPress }) => (
-  <TouchableOpacity style={styles.occupationItem} onPress={onPress}>
-    <Image source={icon} style={styles.icon} />
+  <TouchableOpacity style={styles.occupationItem} onPress={onPress} activeOpacity={0.85}>
+    <View style={styles.iconWrap}>
+      <Image source={icon} style={styles.icon} />
+    </View>
     <Text style={styles.occupationText}>{name}</Text>
   </TouchableOpacity>
 );
@@ -64,7 +67,7 @@ const JobScreen = ({ navigation }) => {
   const handleJobRequest = async () => {
     setLoadingJobRequest(true);
     if(onJob){
-      Alert.alert('Alert','You already have a job in queue', 
+      Alert.alert('Alert','You already have a job in queue',
       [{
         text: 'Cancel Job',
         onPress: () => cancelJob()
@@ -80,77 +83,78 @@ const JobScreen = ({ navigation }) => {
   return (
     <SafeAreaView style={styles.container}>
       {loadingJobRequest ?
-        (<>
-          <ActivityIndicator style={{alignSelf:'center'}} animating size={80}/>
-          <Text style={{textAlign:'center'}}> You have requested for a job </Text>
-          <Button onPress={cancelJob}> Cancel </Button>
-        </>) :
-        (<>
-          <ScrollView contentContainerStyle={styles.grid}>
-            {occupations.map((occupation) => (
-              <OccupationItem
-                key={occupation.id}
-                name={occupation.name}
-                icon={occupation.icon}
-                onPress={() => handleJobPress(occupation.name)}
-              />
-            ))}
+        (
+        <View style={styles.pending}>
+          <ActivityIndicator style={{alignSelf:'center'}} animating size={64} color={colors.primary}/>
+          <Text style={styles.pendingTitle}>Request sent</Text>
+          <Text style={styles.pendingText}>We're matching you with a nearby professional.</Text>
+          <Button mode="outlined" onPress={cancelJob} textColor={colors.danger} style={styles.cancelBtn}>Cancel request</Button>
+        </View>
+        ) :
+        (
+          <ScrollView contentContainerStyle={styles.scroll} showsVerticalScrollIndicator={false}>
+            <Text style={styles.heading}>What do you need help with?</Text>
+            <Text style={styles.subheading}>Pick a service to find verified professionals near you.</Text>
+            <View style={styles.grid}>
+              {occupations.map((occupation) => (
+                <OccupationItem
+                  key={occupation.id}
+                  name={occupation.name}
+                  icon={occupation.icon}
+                  onPress={() => handleJobPress(occupation.name)}
+                />
+              ))}
+            </View>
+            <Button mode="text" icon="history" onPress={()=>{ navigation.push('CustomerHistoryScreen')}} textColor={colors.primary} style={styles.historyBtn}>
+              View history
+            </Button>
             <Portal>
-              <Dialog visible={visible} onDismiss={hideDialog}>
-                <Dialog.Title>Alert</Dialog.Title>
+              <Dialog visible={visible} onDismiss={hideDialog} style={{ borderRadius: radius.lg }}>
+                <Dialog.Title>Confirm service</Dialog.Title>
                 <Dialog.Content>
-                  <Text variant="bodyMedium">Do you want to get a {serviceWanted}</Text>
+                  <Text variant="bodyMedium" style={{ color: colors.textMuted }}>Do you want to request a {serviceWanted}?</Text>
                 </Dialog.Content>
                 <Dialog.Actions>
-                  <Button onPress={() => handleJobRequest()}>Yes</Button>
-                  <Button onPress={hideDialog}>Cancel</Button>
+                  <Button onPress={hideDialog} textColor={colors.textMuted}>Cancel</Button>
+                  <Button mode="contained" onPress={() => handleJobRequest()}>Yes, continue</Button>
                 </Dialog.Actions>
               </Dialog>
             </Portal>
           </ScrollView>
-        </>)}
-        <Button mode='outlined' onPress={()=>{ navigation.push('CustomerHistoryScreen')}}> View History </Button>
-
+        )}
     </SafeAreaView>
   );
 };
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: '#ffffff',
-    paddingHorizontal: 16,
-    paddingTop: 8,
-  },
-  grid: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    justifyContent: 'space-around',
-    paddingVertical: 16,
-  },
+  container: { flex: 1, backgroundColor: colors.background },
+  scroll: { paddingHorizontal: spacing.lg, paddingTop: spacing.md, paddingBottom: spacing.xl },
+  heading: { ...typography.h2, marginTop: spacing.sm },
+  subheading: { ...typography.muted, marginBottom: spacing.lg },
+  grid: { flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'space-between' },
   occupationItem: {
-    width: '40%',
-    backgroundColor: '#ffffff',
-    padding: 16,
-    marginVertical: 8,
-    borderRadius: 10,
+    width: '48%',
+    backgroundColor: colors.surface,
+    paddingVertical: spacing.lg,
+    marginBottom: spacing.md,
+    borderRadius: radius.lg,
     alignItems: 'center',
     justifyContent: 'center',
-    borderWidth: 1,
-    borderColor: '#ED7D27',
-    elevation: 3,
+    ...shadow.soft,
   },
-  icon: {
-    width: 80,
-    height: 80,
-    marginBottom: 8,
+  iconWrap: {
+    width: 88, height: 88, borderRadius: 44,
+    backgroundColor: colors.surfaceAlt,
+    alignItems: 'center', justifyContent: 'center',
+    marginBottom: spacing.sm,
   },
-  occupationText: {
-    color: '#000000',
-    fontSize: 16,
-    fontWeight: 'bold',
-    textAlign: 'center',
-  },
+  icon: { width: 56, height: 56, borderRadius: radius.sm },
+  occupationText: { ...typography.bodyStrong, textAlign: 'center' },
+  historyBtn: { marginTop: spacing.sm, alignSelf: 'center' },
+  pending: { flex: 1, justifyContent: 'center', alignItems: 'center', paddingHorizontal: spacing.xl },
+  pendingTitle: { ...typography.h2, marginTop: spacing.lg },
+  pendingText: { ...typography.muted, textAlign: 'center', marginTop: spacing.xs },
+  cancelBtn: { marginTop: spacing.xl, borderColor: colors.danger, borderRadius: radius.md },
 });
 
 export default JobScreen;

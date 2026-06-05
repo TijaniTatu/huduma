@@ -1,9 +1,9 @@
 import { View, TouchableOpacity, KeyboardAvoidingView, StyleSheet, SafeAreaView, ScrollView, Alert, Platform } from 'react-native';
-import { Text, Button, TextInput, Appbar, ActivityIndicator, Menu } from 'react-native-paper';
+import { Text, Button, TextInput, Appbar, ActivityIndicator, Menu, Switch } from 'react-native-paper';
 import React, { useEffect, useRef, useState } from 'react';
 import { Image } from 'expo-image';
 import DateTimePicker from '@react-native-community/datetimepicker';
-import { CameraView, useCameraPermissions, Camera } from 'expo-camera';
+import { CameraView, useCameraPermissions, getCameraPermissionsAsync } from 'expo-camera';
 import MapView, { PROVIDER_GOOGLE, Marker } from 'react-native-maps';
 import MapScreen from './MapScreen';
 import * as Location from "expo-location";
@@ -12,6 +12,8 @@ import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 import { AUTH, FIRESTORE_DB } from '../../firebaseConfig';
 import { setDoc, doc, getDoc } from 'firebase/firestore';
 import { writeAskForJobState, getAskForJobState, cleatAskForJobState, readCustomerState } from '../../Services/stateService';
+import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
+import { colors, spacing, radius, typography, shadow } from '../../theme/theme';
 
 const TakePhotos = (props) => {
     const cameraRef = useRef();
@@ -22,7 +24,7 @@ const TakePhotos = (props) => {
     }, [])
 
     const __startCamera = async () => {
-        const { status } = await Camera.getCameraPermissionsAsync();
+        const { status } = await getCameraPermissionsAsync();
         if (status === 'granted') {
             // do something
         } else {
@@ -165,14 +167,14 @@ export default function AskServiceScreen({ navigation }) {
 
     return (
         <SafeAreaView style={styles.container}>
-            <Appbar.Header>
-                <Appbar.BackAction onPress={() => navigation.goBack()} />
-                <Appbar.Content title="Request Details" />
+            <Appbar.Header style={{ backgroundColor: colors.background }} statusBarHeight={0}>
+                <Appbar.BackAction onPress={() => navigation.goBack()} color={colors.text} />
+                <Appbar.Content title="Request details" titleStyle={{ fontWeight: '700', color: colors.text }} />
             </Appbar.Header>
 
             {loading ?
                 (<View style={styles.loadingContainer}>
-                    <ActivityIndicator size={40} animating />
+                    <ActivityIndicator size={48} animating color={colors.primary} />
                 </View>
                 ) : (
                     <>
@@ -181,14 +183,13 @@ export default function AskServiceScreen({ navigation }) {
                                 {isPickingPhoto ? (
                                     <TakePhotos closeCamera={setIsPickingPhoto} setStateImage={(val) => setImage(val)} />
                                 ) : (
-                                    <>
+                                    <View style={{ flex: 1, padding: spacing.lg }}>
                                         <MapScreen
                                             setState={(val) => setLocationName(val)}
                                             setStateCurrentLocation={(val) => setCurrentLocation(val)}
                                         />
-                                        <Text style={styles.locationText}>{locationName}</Text>
-                                        <Button onPress={() => setIsSettingLocation(false)}>Select Location</Button>
-                                    </>
+                                        <Button mode="contained" onPress={() => setIsSettingLocation(false)} style={styles.submitButton} contentStyle={{ height: 50 }} labelStyle={{ fontWeight: '700' }}>Use this location</Button>
+                                    </View>
                                 )}
                             </>
                         ) : (
@@ -196,67 +197,88 @@ export default function AskServiceScreen({ navigation }) {
                                 behavior={Platform.OS === "ios" ? "padding" : "height"}
                                 style={{ flex: 1 }}
                             >
-                                <ScrollView contentContainerStyle={styles.scrollViewContent}>
-                                    <Text style={styles.title}>{serviceWanted} Service Details</Text>
-                                    <Image
-                                        style={styles.image}
-                                        source={{ uri: image }}
-                                        placeholder={{ blurhash }}
-                                        contentFit="cover"
-                                        transition={1000}
-                                    />
-                                    <Button onPress={() => setIsPickingPhoto(!isPickingPhoto)}>ADD A PHOTO</Button>
-                                    <View style={styles.row}>
-                                        <Text style={styles.label}>Is it a broken Appliance?</Text>
-                                        <Button
-                                            mode="contained"
-                                            onPress={() => setDeviceBroken(!deviceBroken)}
-                                            style={[styles.input, { backgroundColor: deviceBroken ? 'green' : 'red', marginVertical: 10 }]}
+                                <ScrollView contentContainerStyle={styles.scrollViewContent} showsVerticalScrollIndicator={false}>
+                                    <Text style={styles.title}>{serviceWanted} details</Text>
+                                    <Text style={styles.subtitle}>Add a photo and describe what you need.</Text>
+
+                                    <TouchableOpacity onPress={() => setIsPickingPhoto(!isPickingPhoto)} activeOpacity={0.85} style={styles.photoBox}>
+                                        {image ? (
+                                            <Image style={styles.image} source={{ uri: image }} placeholder={{ blurhash }} contentFit="cover" transition={1000} />
+                                        ) : (
+                                            <View style={styles.photoPlaceholder}>
+                                                <MaterialCommunityIcons name="camera-plus-outline" size={36} color={colors.textMuted} />
+                                                <Text style={styles.photoHint}>Add a photo</Text>
+                                            </View>
+                                        )}
+                                    </TouchableOpacity>
+
+                                    <View style={styles.card}>
+                                        <View style={styles.switchRow}>
+                                            <Text style={styles.label}>Is it a broken appliance?</Text>
+                                            <Switch value={deviceBroken} onValueChange={() => setDeviceBroken(!deviceBroken)} color={colors.primary} />
+                                        </View>
+
+                                        {deviceBroken && (
+                                            <>
+                                                <TextInput
+                                                    label="Appliance type"
+                                                    value={deviceType}
+                                                    onChangeText={(text) => setDeviceType(text)}
+                                                    style={styles.input}
+                                                    mode="outlined"
+                                                    outlineColor={colors.border}
+                                                    activeOutlineColor={colors.primary}
+                                                />
+                                                <TextInput
+                                                    label="Appliance model"
+                                                    value={deviceModel}
+                                                    onChangeText={(text) => setDeviceModel(text)}
+                                                    style={styles.input}
+                                                    mode="outlined"
+                                                    outlineColor={colors.border}
+                                                    activeOutlineColor={colors.primary}
+                                                />
+                                            </>
+                                        )}
+
+                                        <TextInput
+                                            label="Describe the issue"
+                                            value={description}
+                                            onChangeText={(text) => setDescription(text)}
+                                            style={styles.input}
+                                            mode="outlined"
+                                            multiline
+                                            numberOfLines={4}
+                                            outlineColor={colors.border}
+                                            activeOutlineColor={colors.primary}
+                                        />
+
+                                        <Menu
+                                            visible={showMenu}
+                                            onDismiss={() => setShowMenu(false)}
+                                            anchor={<Button mode="outlined" icon="alert-outline" onPress={() => setShowMenu(true)} style={styles.selectBtn} textColor={colors.text}>{urgency ? `Urgency: ${urgency}` : "Select urgency"}</Button>}
                                         >
-                                            {deviceBroken ? 'Yes' : 'No'}
+                                            <Menu.Item onPress={() => { setUrgency("Low"); setShowMenu(false); }} title="Low" />
+                                            <Menu.Item onPress={() => { setUrgency("Medium"); setShowMenu(false); }} title="Medium" />
+                                            <Menu.Item onPress={() => { setUrgency("High"); setShowMenu(false); }} title="High" />
+                                        </Menu>
+
+                                        <Button mode="outlined" icon="map-marker-outline" onPress={() => setIsSettingLocation(!isSettingLocation)} style={styles.selectBtn} textColor={colors.text}>
+                                            {locationName ? locationName : "Set location"}
                                         </Button>
                                     </View>
-                                    <TextInput
-                                        label="Appliance Type"
-                                        value={deviceType}
-                                        onChangeText={(text) => setDeviceType(text)}
-                                        style={styles.input}
-                                    />
-                                    <TextInput
-                                        label="Appliance Model"
-                                        value={deviceModel}
-                                        onChangeText={(text) => setDeviceModel(text)}
-                                        style={styles.input}
-                                    />
-
-                                   
-                                    <TextInput
-                                        label="Describe the Issue"
-                                        value={description}
-                                        onChangeText={(text) => setDescription(text)}
-                                        style={styles.input}
-                                        multiline
-                                        numberOfLines={4}
-                                    />
-                                    <Menu
-                                        visible={showMenu}
-                                        onDismiss={() => setShowMenu(false)}
-                                        anchor={<Button onPress={() => setShowMenu(true)}>{urgency || "Select Urgency"}</Button>}
-                                    >
-                                        <Menu.Item onPress={() => { setUrgency("Low"); setShowMenu(false); }} title="Low" />
-                                        <Menu.Item onPress={() => { setUrgency("Medium"); setShowMenu(false); }} title="Medium" />
-                                        <Menu.Item onPress={() => { setUrgency("High"); setShowMenu(false); }} title="High" />
-                                    </Menu>
-                                    <Button onPress={() => setIsSettingLocation(!isSettingLocation)}>SET LOCATION</Button>
-
                                 </ScrollView>
-                                <Button
-                                    mode="contained"
-                                    onPress={() => PushToFirestore()}
-                                    style={styles.submitButton}
-                                >
-                                    Ask for Service
-                                </Button>
+                                <View style={styles.footer}>
+                                    <Button
+                                        mode="contained"
+                                        onPress={() => PushToFirestore()}
+                                        style={styles.submitButton}
+                                        contentStyle={{ height: 50 }}
+                                        labelStyle={{ fontSize: 16, fontWeight: '700' }}
+                                    >
+                                        Request service
+                                    </Button>
+                                </View>
                             </KeyboardAvoidingView>
                         )}
                     </>
@@ -267,42 +289,27 @@ export default function AskServiceScreen({ navigation }) {
 }
 
 const styles = StyleSheet.create({
-    container: {
-        flex: 1,
-        backgroundColor: 'white',
+    container: { flex: 1, backgroundColor: colors.background },
+    loadingContainer: { flex: 1, justifyContent: 'center', alignItems: 'center' },
+    scrollViewContent: { paddingHorizontal: spacing.lg, paddingBottom: spacing.lg },
+    title: { ...typography.h2, marginTop: spacing.sm },
+    subtitle: { ...typography.muted, marginBottom: spacing.lg },
+    photoBox: { borderRadius: radius.lg, overflow: 'hidden', marginBottom: spacing.lg },
+    image: { width: '100%', height: 200, borderRadius: radius.lg },
+    photoPlaceholder: {
+        width: '100%', height: 160, borderRadius: radius.lg,
+        backgroundColor: colors.surfaceAlt,
+        borderWidth: 1.5, borderColor: colors.border, borderStyle: 'dashed',
+        alignItems: 'center', justifyContent: 'center',
     },
-    loadingContainer: {
-        flex: 1,
-        justifyContent: 'center',
-        alignItems: 'center',
-    },
-    scrollViewContent: {
-        paddingHorizontal: 20,
-        paddingBottom: 20,
-    },
-    title: {
-        fontSize: 20,
-        marginVertical: 10,
-        fontWeight: 'bold',
-    },
-    image: {
-        width: '100%',
-        height: 200,
-        marginBottom: 20,
-    },
-    label: {
-        fontSize: 16,
-    },
-    input: {
-        marginVertical: 10,
-    },
-    submitButton: {
-        margin: 20,
-        paddingVertical: 10,
-    },
-    locationText: {
-        fontSize: 16,
-        padding: 10,
-    },
+    photoHint: { ...typography.muted, marginTop: spacing.sm },
+    card: { backgroundColor: colors.surface, borderRadius: radius.lg, padding: spacing.lg, ...shadow.card },
+    switchRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: spacing.sm },
+    label: { ...typography.bodyStrong, flex: 1 },
+    input: { marginVertical: spacing.sm, backgroundColor: colors.surface },
+    selectBtn: { marginTop: spacing.sm, borderColor: colors.border, borderRadius: radius.md, justifyContent: 'flex-start' },
+    footer: { padding: spacing.lg, backgroundColor: colors.background },
+    submitButton: { borderRadius: radius.md },
+    locationText: { ...typography.body, padding: spacing.sm },
 });
 

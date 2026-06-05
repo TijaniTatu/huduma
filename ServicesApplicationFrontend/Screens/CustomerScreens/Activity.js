@@ -12,6 +12,7 @@ import { getChatPartyState } from '../../Services/stateService';
 import * as Notifications from "expo-notifications";
 import { Rating } from 'react-native-ratings';
 import RBSheet from 'react-native-raw-bottom-sheet';
+import { colors, spacing, radius, typography, shadow } from '../../theme/theme';
 
 
 const ActivityScreen = ({ navigation }) => {
@@ -157,57 +158,59 @@ const [starRating, setStarRating] = useState(0);
   const refRBSheet = useRef();
 
   return (
-    <View style={{ flex: 1 }}>
+    <View style={styles.screen}>
       {loading ?
-        (<>
-          <ActivityIndicator animating />
-        </>)
+        (<View style={styles.center}><ActivityIndicator animating size={56} color={colors.primary} /></View>)
         :
         (<View style={{ flex: 1 }}>
           {workerComing ?
-            (<>
-              <Button onPress={() => cancelJob()}> Cancel Job Request </Button>
+            (<View style={styles.body}>
               {jobFinished ?
-                (<>
-                  <View style={styles.container}>
-                    <Text> Worker Has Finshed Job</Text>
-                    <Text> Please Fill the form Bellow </Text>
+                (
+                  <View style={styles.card}>
+                    <Text style={styles.cardTitle}>Job complete</Text>
+                    <Text style={styles.cardSub}>Please rate your experience.</Text>
                     <TextInput
                       style={styles.input}
                       mode='outlined'
-                      label='Worker Arrived on Time 0-5'
+                      label='Worker arrived on time (0-5)'
                       value={arrivaTime}
                       onChangeText={(text) => setArrivalTime(text)}
                       maxLength={2}
+                      keyboardType="numeric"
                       disabled={formLoading}
+                      outlineColor={colors.border}
+                      activeOutlineColor={colors.primary}
                     />
                     <TextInput
                       style={styles.input}
                       mode='outlined'
-                      label="Satisfied by Worker's job 0-5"
+                      label="Satisfaction with the job (0-5)"
                       value={satisfaction}
                       onChangeText={(text) => setSatisfaction(text)}
                       maxLength={2}
+                      keyboardType="numeric"
                       disabled={formLoading}
+                      outlineColor={colors.border}
+                      activeOutlineColor={colors.primary}
                     />
-                   <Text>Rate the Worker's Service:</Text>
+                    <Text style={styles.rateLabel}>Rate the worker's service</Text>
                     <Rating
                       startingValue={starRating}
-                      imageSize={30}
+                      imageSize={32}
                       onFinishRating={(rating) => setStarRating(rating)}
-                      style={{ paddingVertical: 10 }}
+                      style={{ paddingVertical: spacing.sm }}
                     />
-                    <Button onPress={() => handleFormSubmit()} disabled={formLoading}> Submit </Button>
+                    <Button mode="contained" onPress={() => handleFormSubmit()} disabled={formLoading} loading={formLoading} style={styles.primaryBtn} contentStyle={{ height: 50 }} labelStyle={{ fontWeight: '700' }}>Submit review</Button>
                   </View>
-                </>)
+                )
                 :
-                (<>
-                  <Card mode='elevated'>
+                (
+                  <Card mode='elevated' style={styles.card}>
                     {worker ?
                       (<>
                         <Card.Content>
-                          <Chip style={{ marginTop: 10 }} icon="account-hard-hat"> {worker.occupation} </Chip>
-                          <View style={styles.row}>
+                          <View style={styles.workerHead}>
                             <Image
                               style={styles.image}
                               source={{ uri: imageURL }}
@@ -215,33 +218,37 @@ const [starRating, setStarRating] = useState(0);
                               contentFit="cover"
                               transition={1000}
                             />
-                            <View>
-                              <Text> Name {worker.name} </Text>
-                              <Text> Phone Number {worker.phoneNumber} </Text>
-                            </View>
+                            <Text style={styles.workerName}>{worker.name}</Text>
+                            <Chip style={styles.occChip} textStyle={{ color: colors.primaryDark }} icon="account-hard-hat">{worker.occupation}</Chip>
+                            <Text style={styles.statusText}>On the way to you</Text>
+                            <Text style={styles.muted}>{worker.phoneNumber}</Text>
                           </View>
                         </Card.Content>
-                        <Card.Actions>
-                          <Button onPress={() => navigation.push('CustomerChatScreen')}> In App Text </Button>
-                          <Button onPress={() => {
+                        <Card.Actions style={styles.actionsRow}>
+                          <Button mode="outlined" icon="message-text-outline" onPress={() => navigation.push('CustomerChatScreen')}>Chat</Button>
+                          <Button mode="contained" icon="phone" onPress={() => {
                             let number = worker.phoneNumber;
                             call({ number, prompt: true })
-                          }}> Call </Button>
-                          <Button onPress={() => onDeclineJob(jobObject)}> Decline </Button>
+                          }}>Call</Button>
                         </Card.Actions>
-                        <Card.Actions>
-                          <Button mode='outlined' onPress={() => onWorkerArrive()}> Worker Has Arrived </Button>
-                        </Card.Actions>
-                        <Button onPress={() => refRBSheet.current.open()}> Worker Stats </Button>
+                        <View style={styles.secondaryActions}>
+                          <Button mode="contained" icon="check-circle-outline" buttonColor={colors.success} onPress={() => onWorkerArrive()} style={styles.fullBtn}>Worker has arrived</Button>
+                          <View style={styles.linkRow}>
+                            <Button mode="text" onPress={() => refRBSheet.current.open()} textColor={colors.primary}>Worker stats</Button>
+                            <Button mode="text" onPress={() => onDeclineJob(jobObject)} textColor={colors.danger}>Decline</Button>
+                          </View>
+                          <Button mode="text" onPress={() => cancelJob()} textColor={colors.textMuted}>Cancel request</Button>
+                        </View>
                         <RBSheet
                           ref={refRBSheet}
                           useNativeDriver={false}
                           customStyles={{
                             wrapper: {
-                              backgroundColor: 'transparent',
+                              backgroundColor: colors.backdropFallback || 'rgba(15,31,42,0.4)',
                             },
+                            container: { borderTopLeftRadius: radius.xl, borderTopRightRadius: radius.xl, padding: spacing.lg },
                             draggableIcon: {
-                              backgroundColor: '#000',
+                              backgroundColor: colors.border,
                             },
                           }}
                           customModalProps={{
@@ -252,54 +259,62 @@ const [starRating, setStarRating] = useState(0);
                             enabled: false,
                           }}>
                           <View style={{ flex: 1 }}>
-                          <Button mode='contained' onPress={() => refRBSheet.current.close()}> Close </Button>
-                            <View style={styles.container}>
-                              <Chip style={{ marginTop: 10 }} icon="account-hard-hat"> {worker.occupation} </Chip>
-                              <Chip style={{ marginTop: 10 }} icon="wrench"> Jobs : {worker.jobs} </Chip>
-                              <Chip style={{ marginTop: 10 }} icon="arrow-up-down"> Rating :{worker.rating} </Chip>
-                              <Chip style={{ marginTop: 10 }} icon="cash-minus"> Average cost : {worker.averagecost} </Chip>
+                            <Text style={styles.sheetTitle}>{worker.name}</Text>
+                            <View style={styles.statsWrap}>
+                              <Chip style={styles.statChip} icon="account-hard-hat">{worker.occupation}</Chip>
+                              <Chip style={styles.statChip} icon="wrench">Jobs: {worker.jobs}</Chip>
+                              <Chip style={styles.statChip} icon="star">Rating: {worker.rating}</Chip>
+                              <Chip style={styles.statChip} icon="cash">Avg cost: {worker.averagecost}</Chip>
                             </View>
+                            <Button mode='contained' onPress={() => refRBSheet.current.close()} style={styles.primaryBtn}>Close</Button>
                           </View>
                         </RBSheet>
-                      </>) : (<>
-                        <ActivityIndicator animating />
+                      </>) : (
+                      <Card.Content style={styles.center}>
+                        <ActivityIndicator animating color={colors.primary} />
                         <TouchableOpacity onPress={() => getWorkerProfile()}>
-                          <Text> Loading Worker Details</Text>
+                          <Text style={styles.muted}>Loading worker details…</Text>
                         </TouchableOpacity>
-                      </>)}
+                      </Card.Content>
+                      )}
                   </Card>
-                </>)}
-            </>) :
-            (<>
-            </>)}
+                )}
+            </View>) :
+            (<View style={styles.center}>
+              <Chip icon="map-marker-radius-outline" style={styles.idleChip}>No active job</Chip>
+              <Text style={styles.idleTitle}>Nothing in progress</Text>
+              <Text style={styles.muted}>Request a service from the Jobs tab to get started.</Text>
+            </View>)}
         </View>)}
     </View>
   )
 }
 
 const styles = StyleSheet.create({
-  container: {marginHorizontal: 20, marginTop: 10 },
-  input: { marginVertical: 5, borderRadius: 0 },
-  row: {
-    alignItems: "center",
-    flexDirection: "row",
-    marginVertical: 20,
-  },
-  textContainer: { alignContent: 'center', alignItems: 'center' },
-  Information: {
-    color: 'purple',
-    fontSize: 15,
-  },
-  textLink: {
-    color: 'orange',
-    marginLeft: 2
-  },
-  image: {
-    width: 150,
-    height: 150,
-    borderRadius: 100,
-    alignSelf: 'center',
-  },
+  screen: { flex: 1, backgroundColor: colors.background },
+  center: { flex: 1, justifyContent: 'center', alignItems: 'center', padding: spacing.xl },
+  body: { flex: 1, padding: spacing.lg },
+  card: { backgroundColor: colors.surface, borderRadius: radius.lg, padding: spacing.lg, ...shadow.card },
+  cardTitle: { ...typography.h2 },
+  cardSub: { ...typography.muted, marginBottom: spacing.md },
+  input: { marginBottom: spacing.md, backgroundColor: colors.surface },
+  rateLabel: { ...typography.label, marginTop: spacing.sm, marginBottom: spacing.xs, alignSelf: 'center' },
+  primaryBtn: { borderRadius: radius.md, marginTop: spacing.sm },
+  workerHead: { alignItems: 'center', paddingVertical: spacing.sm },
+  image: { width: 120, height: 120, borderRadius: 60, backgroundColor: colors.surfaceAlt },
+  workerName: { ...typography.h2, marginTop: spacing.md },
+  occChip: { backgroundColor: colors.primaryContainer, marginTop: spacing.sm },
+  statusText: { ...typography.bodyStrong, color: colors.success, marginTop: spacing.sm },
+  muted: { ...typography.muted },
+  actionsRow: { justifyContent: 'center', gap: spacing.sm },
+  secondaryActions: { paddingHorizontal: spacing.md, paddingBottom: spacing.md },
+  fullBtn: { borderRadius: radius.md, marginTop: spacing.sm },
+  linkRow: { flexDirection: 'row', justifyContent: 'space-between', marginTop: spacing.xs },
+  sheetTitle: { ...typography.h2, textAlign: 'center', marginBottom: spacing.md },
+  statsWrap: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.sm, justifyContent: 'center', marginBottom: spacing.lg },
+  statChip: { backgroundColor: colors.surfaceAlt },
+  idleChip: { backgroundColor: colors.surfaceAlt, marginBottom: spacing.md },
+  idleTitle: { ...typography.h2, marginBottom: spacing.xs },
 });
 
 

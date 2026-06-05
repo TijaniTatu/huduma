@@ -1,3 +1,4 @@
+import { API_URL } from '../config';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import React, { useState, useRef, useEffect } from 'react';
 import { Alert, StyleSheet, View, TouchableOpacity, ScrollView } from 'react-native';
@@ -19,6 +20,8 @@ import { updateProfile } from 'firebase/auth';
 import MapScreen from './CustomerScreens/MapScreen';
 
 import * as ImagePicker from 'expo-image-picker';
+import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
+import { colors, spacing, radius, typography, shadow } from '../theme/theme';
 
 export default function BuildProfile({ navigation }) {
 
@@ -90,7 +93,7 @@ export default function BuildProfile({ navigation }) {
 
             //Send this request after SMS verification
 
-            axios.post('http://192.168.100.91:3000/api/buildprofile', { uid, username, phone_number, email })
+            axios.post(`${API_URL}/api/buildprofile`, { uid, username, phone_number, email })
 
               .then(response => {
                 //go to build profile
@@ -136,7 +139,7 @@ export default function BuildProfile({ navigation }) {
 
 
         //Send this request after SMS verification
-        axios.post('http://192.168.100.140:3000/api/buildprofile', { uid, username, phone_number, email })
+        axios.post(`${API_URL}/api/buildprofile`, { uid, username, phone_number, email })
           .then(response => {
             //go to build profile
             //store details in async storage
@@ -177,7 +180,7 @@ export default function BuildProfile({ navigation }) {
 
   const pickImage = async () => {
     let result = ImagePicker.launchImageLibraryAsync({
-      mediaTypes: ImagePicker.MediaTypeOptions.All,
+      mediaTypes: ['images', 'videos'],
       allowsEditing: true,
       aspect: [4, 3],
       quality: 0.7,
@@ -272,95 +275,104 @@ export default function BuildProfile({ navigation }) {
   return (
     <View style={styles.container}>
 
-      <Appbar.Header mode='small' collapsable={true}>
-        <Appbar.BackAction onPress={() => navigation.goBack()} />
-        <Appbar.Content title="Build Profile" />
-        <Appbar.Action icon="cog" onPress={() => { navigation.push("Settings") }} />
+      <Appbar.Header mode='small' collapsable={true} style={{ backgroundColor: colors.background }} statusBarHeight={0}>
+        <Appbar.BackAction onPress={() => navigation.goBack()} color={colors.text} />
+        <Appbar.Content title="Build profile" titleStyle={{ fontWeight: '700', color: colors.text }} />
+        <Appbar.Action icon="cog-outline" color={colors.text} onPress={() => { navigation.push("Settings") }} />
       </Appbar.Header>
 
       {loading ?
-        (<>
-          <View style={styles.textContainer}>
-            <Text style={styles.headerText}>
-              Let's get you going
-            </Text>
-          </View>
-          <TouchableOpacity onPress={() => pickImage()}>
-            <Image
-              style={styles.image}
-              source={{ uri: imageURL }}
-              placeholder={{ blurhash }}
-              contentFit="cover"
-              transition={1000}
+        (
+        <ScrollView contentContainerStyle={styles.scroll} showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled">
+          <Text style={styles.headerText}>Let's get you set up</Text>
+          <Text style={styles.subtitle}>Add your details so workers can reach you.</Text>
+
+          <TouchableOpacity onPress={() => pickImage()} style={styles.avatarWrap} activeOpacity={0.85}>
+            {imageURL ? (
+              <Image style={styles.image} source={{ uri: imageURL }} placeholder={{ blurhash }} contentFit="cover" transition={1000} />
+            ) : (
+              <View style={[styles.image, styles.imagePlaceholder]}>
+                <MaterialCommunityIcons name="account-plus-outline" size={40} color={colors.textMuted} />
+              </View>
+            )}
+            <View style={styles.cameraBadge}>
+              <MaterialCommunityIcons name="camera" size={16} color="#fff" />
+            </View>
+          </TouchableOpacity>
+
+          <View style={styles.card}>
+            <TextInput
+              style={styles.input}
+              value={username}
+              label='Full name'
+              onChangeText={(text) => setUserName(text)}
+              mode="outlined"
+              outlineColor={colors.border}
+              activeOutlineColor={colors.primary}
+              left={<TextInput.Icon icon="account-outline" />}
             />
-          </TouchableOpacity>
+            <TextInput
+              style={styles.input}
+              value={phone_number}
+              label='Phone number'
+              keyboardType="phone-pad"
+              onChangeText={(text) => setPhone_number(text)}
+              mode="outlined"
+              outlineColor={colors.border}
+              activeOutlineColor={colors.primary}
+              left={<TextInput.Icon icon="phone-outline" />}
+            />
+            <TextInput
+              style={styles.input}
+              value={secondaryEmail}
+              label='Secondary email'
+              autoCapitalize="none"
+              keyboardType="email-address"
+              onChangeText={(text) => setSecondaryEmail(text)}
+              mode="outlined"
+              outlineColor={colors.border}
+              activeOutlineColor={colors.primary}
+              left={<TextInput.Icon icon="email-outline" />}
+            />
 
-          <TextInput
-            style={{ ...styles.input, backgroundColor: "white" }}
-            value={username}
-            label='Full Name'
-            onChangeText={(text) => setUserName(text)}
-          />
-          <TextInput
-            style={{ ...styles.input, backgroundColor: "white" }}
-            value={phone_number}
-            label='Phone Number'
-            onChangeText={(text) => setPhone_number(text)}
-          />
-          <TextInput
-            style={{ ...styles.input, backgroundColor: "white" }}
-            value={secondaryEmail}
-            label='Secondary Email'
-            onChangeText={(text) => setSecondaryEmail(text)}
-          />
-          <TouchableOpacity onPress={() => setOpen(true)}>
-            {date ?
-              (<>
-                <Text style={{ fontSize: 20 }}>
-                  D.O.B  {date.toString()}
-                </Text>
-              </>) :
-              (<>
-                <Text style={{ fontSize: 20, }}>
-                  Dob
-                </Text>
-              </>)}
+            <TouchableOpacity onPress={() => setOpen(true)} style={styles.fieldRow}>
+              <MaterialCommunityIcons name="calendar-outline" size={22} color={colors.textMuted} />
+              <Text style={styles.fieldText}>{date ? `Date of birth: ${date.toString().slice(0,15)}` : 'Set date of birth'}</Text>
+              <MaterialCommunityIcons name="chevron-right" size={22} color={colors.textFaint} />
+            </TouchableOpacity>
 
-          </TouchableOpacity>
-          <DatePickerModal
-            locale="en"
-            mode="single"
-            visible={open}
-            onDismiss={onDismissSingle}
-            date={date}
-            onConfirm={onConfirmSingle}
-          />
+            <DatePickerModal
+              locale="en"
+              mode="single"
+              visible={open}
+              onDismiss={onDismissSingle}
+              date={date}
+              onConfirm={onConfirmSingle}
+            />
 
-          {mapViewOpen ?
-            (<>
-              <MapScreen
-                setState={(val) => setLocationName(val)}
-                setStateCurrentLocation={(val) => setCurrentLocation(val)}
-              />
-            </>) :
-            (<>
-            </>)}
+            {mapViewOpen ?
+              (<View style={styles.mapBox}>
+                <MapScreen
+                  setState={(val) => setLocationName(val)}
+                  setStateCurrentLocation={(val) => setCurrentLocation(val)}
+                />
+              </View>) : null}
 
-          {locationName ? (<>
-            <Text style={styles.centerText}> Location : {locationName} </Text>
-          </>) : (<>
-            <ActivityIndicator />
-          </>)}
+            <TouchableOpacity onPress={() => handleLocationUpdate()} style={styles.fieldRow}>
+              <MaterialCommunityIcons name="map-marker-outline" size={22} color={colors.textMuted} />
+              <Text style={styles.fieldText} numberOfLines={1}>
+                {mapViewOpen ? 'Use this location' : (locationName ? locationName : 'Set home location')}
+              </Text>
+              <MaterialCommunityIcons name="chevron-right" size={22} color={colors.textFaint} />
+            </TouchableOpacity>
+          </View>
 
-          <Button onPress={() => handleLocationUpdate()}> {mapViewOpen ? ('USE THIS LOCATION') : ('SET HOME LOCATION')} </Button>
-
-          <Button mode='contained' style={styles.input} onPress={() => updateUserProfile()}> Continue </Button>
-        </>) :
+          <Button mode='contained' style={styles.continueBtn} contentStyle={{ height: 50 }} labelStyle={{ fontSize: 16, fontWeight: '700' }} onPress={() => updateUserProfile()}>Continue</Button>
+        </ScrollView>
+        ) :
         (<>
           {verifyLoading ?
-            (<>
-              <ActivityIndicator animating={true} />
-            </>) :
+            (<View style={styles.center}><ActivityIndicator animating={true} color={colors.primary} size={48} /></View>) :
             (<>
               <VerifyPhone
                 onVerify={verifyCode}
@@ -380,38 +392,24 @@ export default function BuildProfile({ navigation }) {
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    padding: 20,
-    backgroundColor: '#FFFFFF',
+  container: { flex: 1, backgroundColor: colors.background },
+  scroll: { padding: spacing.lg, paddingBottom: spacing.xxl },
+  center: { flex: 1, justifyContent: 'center', alignItems: 'center' },
+  headerText: { ...typography.h1, textAlign: 'center', marginTop: spacing.sm },
+  subtitle: { ...typography.muted, textAlign: 'center', marginBottom: spacing.lg },
+  avatarWrap: { alignSelf: 'center', marginBottom: spacing.lg },
+  image: { width: 120, height: 120, borderRadius: 60, alignSelf: 'center', backgroundColor: colors.surfaceAlt },
+  imagePlaceholder: { alignItems: 'center', justifyContent: 'center', borderWidth: 1.5, borderColor: colors.border, borderStyle: 'dashed' },
+  cameraBadge: {
+    position: 'absolute', bottom: 0, right: 0,
+    width: 34, height: 34, borderRadius: 17,
+    backgroundColor: colors.primary, alignItems: 'center', justifyContent: 'center',
+    borderWidth: 2, borderColor: colors.background,
   },
-  input: {
-    marginVertical: 10,
-    borderRadius: 8,
-    backgroundColor: '#FFAC4A',
-    padding: 10,
-    fontSize: 16,
-  },
-  textContainer: {
-    paddingVertical: 20,
-    alignItems: 'center',
-  },
-  headerText: {
-    fontSize: 28,
-    fontWeight: 'bold',
-    marginBottom: 10,
-  },
-  centerText: {
-    fontSize: 18,
-    textAlign: 'center',
-    marginTop: 10,
-    marginBottom: 5,
-  },
-  image: {
-    width: 150,
-    height: 150,
-    borderRadius: 75,
-    alignSelf: 'center',
-    marginVertical: 20,
-  },
+  card: { backgroundColor: colors.surface, borderRadius: radius.lg, padding: spacing.lg, ...shadow.card },
+  input: { marginBottom: spacing.md, backgroundColor: colors.surface },
+  fieldRow: { flexDirection: 'row', alignItems: 'center', paddingVertical: spacing.md, borderTopWidth: 1, borderTopColor: colors.border },
+  fieldText: { ...typography.body, flex: 1, marginLeft: spacing.md },
+  mapBox: { height: 240, borderRadius: radius.md, overflow: 'hidden', marginVertical: spacing.md },
+  continueBtn: { borderRadius: radius.md, marginTop: spacing.lg },
 });

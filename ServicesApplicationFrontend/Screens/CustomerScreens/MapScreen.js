@@ -4,6 +4,8 @@ import { Text, Button, ActivityIndicator } from 'react-native-paper';
 
 import { StyleSheet, View } from 'react-native';
 import * as Location from "expo-location";
+import { colors, spacing, radius, typography, shadow } from '../../theme/theme';
+import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
 
 const InitialRegion = {
     latitude: -1.2918808496837835,
@@ -52,7 +54,7 @@ export default function MapScreen(props) {
     }
     return (
         <View style={styles.container}>
-            {initialRegion && (
+            {initialRegion ? (
                 <MapView style={styles.map} initialRegion={initialRegion} onRegionChangeComplete={(region)=> updateRegion(region)}>
                     {currentLocation && (
                         <Marker
@@ -64,7 +66,18 @@ export default function MapScreen(props) {
                         />
                     )}
                 </MapView>
+            ) : (
+                <View style={styles.loading}>
+                    <ActivityIndicator animating size={48} color={colors.primary} />
+                    <Text style={styles.loadingText}>Getting your location…</Text>
+                </View>
             )}
+            {locationName ? (
+                <View style={styles.pill}>
+                    <MaterialCommunityIcons name="map-marker" size={18} color={colors.primary} />
+                    <Text style={styles.pillText} numberOfLines={1}>{locationName}</Text>
+                </View>
+            ) : null}
         </View>
     );
 }
@@ -72,10 +85,29 @@ export default function MapScreen(props) {
 const styles = StyleSheet.create({
     container: {
         flex: 1,
-        paddingBottom:20
+        overflow: 'hidden',
+        borderRadius: radius.lg,
+        backgroundColor: colors.surfaceAlt,
     },
     map: {
         width: '100%',
-        height:'100%',
+        height: '100%',
     },
+    loading: { flex: 1, alignItems: 'center', justifyContent: 'center' },
+    loadingText: { ...typography.muted, marginTop: spacing.md },
+    pill: {
+        position: 'absolute',
+        bottom: spacing.md,
+        left: spacing.md,
+        right: spacing.md,
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'center',
+        backgroundColor: colors.surface,
+        borderRadius: radius.pill,
+        paddingVertical: spacing.sm,
+        paddingHorizontal: spacing.md,
+        ...shadow.card,
+    },
+    pillText: { ...typography.bodyStrong, marginLeft: spacing.xs, flexShrink: 1 },
 });

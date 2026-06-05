@@ -1,5 +1,5 @@
 import { View, StyleSheet, SafeAreaView, ScrollView, Alert } from 'react-native';
-import { Card, Button, ActivityIndicator, Appbar, Text } from 'react-native-paper';
+import { Card, Button, ActivityIndicator, Appbar, Text, Avatar, Divider } from 'react-native-paper';
 import { Image } from 'expo-image';
 
 import React, { useEffect, useState } from 'react';
@@ -8,7 +8,8 @@ import { AUTH, FIRESTORE_DB } from '../../firebaseConfig';
 import { setDoc, doc, getDoc, collection, onSnapshot, query, where, getDocs, deleteDoc } from 'firebase/firestore';
 import call from 'react-native-phone-call';
 import {writeAskForJobState} from '../../Services/stateService'
- 
+import { colors, spacing, radius, typography, shadow } from '../../theme/theme';
+
 export default function CustomerHistoryScreen({ navigation }) {
   const [history, setHistory] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -59,25 +60,35 @@ export default function CustomerHistoryScreen({ navigation }) {
   const blurhash =
     '|rF?hV%2WCj[ayj[a|j[az_NaeWBj@ayfRayfQfQM{M|azj[azf6fQfQfQIpWXofj[ayj[j[fQayWCoeoeaya}j[ayfQa{oLj?j[WVj[ayayj[fQoff7azayj[ayj[j[ayofayayayj[fQj[ayayj[ayfjj[j[ayjuayj[';
   return (
-    <View style={{ flex: 1 }}>
-      <Appbar.Header mode='small' collapsable={true}>
-        <Appbar.BackAction onPress={() => navigation.goBack()} />
-        <Appbar.Content title="Your History" />
-        <Appbar.Action icon="cog" onPress={() => { navigation.push("Settings") }} />
+    <View style={styles.screen}>
+      <Appbar.Header mode='small' collapsable={true} style={styles.appbar} statusBarHeight={0}>
+        <Appbar.BackAction onPress={() => navigation.goBack()} color={colors.text} />
+        <Appbar.Content title="Your history" titleStyle={styles.appbarTitle} />
+        <Appbar.Action icon="refresh" onPress={fetchUserHistory} color={colors.text} />
+        <Appbar.Action icon="cog-outline" onPress={() => { navigation.push("Settings") }} color={colors.text} />
       </Appbar.Header>
-      <Button onPress={fetchUserHistory}> Refresh </Button>
       {loading ?
-        (<>
-          <ActivityIndicator animating size={80} />
-        </>) :
-        (<>
-          <ScrollView style={{ flex: 1 }}>
+        (
+          <View style={styles.center}><ActivityIndicator animating size={56} color={colors.primary} /></View>
+        ) :
+        history.length === 0 ? (
+          <View style={styles.center}>
+            <Avatar.Icon size={80} icon="history" color={colors.textMuted} style={{ backgroundColor: colors.surfaceAlt }} />
+            <Text style={styles.emptyTitle}>No history yet</Text>
+            <Text style={styles.emptyText}>Completed jobs will show up here.</Text>
+          </View>
+        ) : (
+          <ScrollView contentContainerStyle={styles.scroll} showsVerticalScrollIndicator={false}>
             {history.map((job, index) => {
               return (
-                <Card key={index}>
-                  <Card.Title title={job.ServiceWanted} />
+                <Card key={index} style={styles.card} mode="elevated">
+                  <View style={styles.cardHead}>
+                    <Avatar.Icon size={40} icon="briefcase-outline" color={colors.primary} style={styles.headIcon} />
+                    <Text style={styles.service}>{job.ServiceWanted}</Text>
+                  </View>
+                  <Divider style={styles.divider} />
                   <Card.Content>
-                    <Text style={styles.occupationText}> Serviced By </Text>
+                    <Text style={styles.label}>Serviced by</Text>
                     <View style={styles.row}>
                       <Image
                         style={styles.image}
@@ -86,28 +97,28 @@ export default function CustomerHistoryScreen({ navigation }) {
                         contentFit="cover"
                         transition={1000}
                       />
-                      <View style={{ flex: 1, justifyContent: 'center', alignContent: 'center', marginLeft: 20 }}>
-                        <Text> Name : {worker.name} </Text>
-                        <Text> Phone Number :{worker.phoneNumber} </Text>
-                        <Button mode='outlined'
+                      <View style={styles.workerInfo}>
+                        <Text style={styles.workerName}>{worker.name}</Text>
+                        <Text style={styles.muted}>{worker.phoneNumber}</Text>
+                        <Button mode='outlined' icon="phone"
+                          style={styles.callBtn}
                           onPress={() => {
                             let number = worker.phoneNumber;
                             call({ number });
                           }}
-                        > Call </Button>
+                        >Call</Button>
                       </View>
                     </View>
-                  </Card.Content>
-                  <Card.Content>
-                    <Text style={styles.occupationText}> Description </Text>
-                    <Text> {job.description} </Text>
-                    <Text style={styles.occupationText}> Area </Text>
-                    <Text> {job.locationName} </Text>
-                    <Text style={styles.occupationText}> Date </Text>
-                    <Text> {job.dateAccepted} </Text>
+
+                    <Text style={styles.label}>Description</Text>
+                    <Text style={styles.value}>{job.description}</Text>
+                    <Text style={styles.label}>Area</Text>
+                    <Text style={styles.value}>{job.locationName}</Text>
+                    <Text style={styles.label}>Date</Text>
+                    <Text style={styles.value}>{job.dateAccepted}</Text>
                   </Card.Content>
                   <Card.Actions>
-                    <Button mode='contained' onPress={()=> handleReport(job.job_id)}>
+                    <Button mode='contained' icon="flag-outline" buttonColor={colors.danger} onPress={()=> handleReport(job.job_id)}>
                       Report
                     </Button>
                   </Card.Actions>
@@ -115,56 +126,30 @@ export default function CustomerHistoryScreen({ navigation }) {
               )
             })}
           </ScrollView>
-        </>)}
+        )}
     </View>
   )
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: '#ffffff',
-    paddingHorizontal: 16,
-    paddingTop: 8,
-  },
-  grid: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    justifyContent: 'space-around',
-    paddingVertical: 16,
-  },
-  occupationItem: {
-    width: '40%',
-    backgroundColor: '#ffffff',
-    padding: 16,
-    marginVertical: 8,
-    borderRadius: 10,
-    alignItems: 'center',
-    justifyContent: 'center',
-    borderWidth: 1,
-    borderColor: '#ED7D27',
-    elevation: 3,
-  },
-  icon: {
-    width: 80,
-    height: 80,
-    marginBottom: 8,
-  },
-  occupationText: {
-    color: '#000000',
-    fontSize: 26,
-    fontWeight: 'bold',
-  },
-  image: {
-    width: 100,
-    height: 100,
-    borderRadius: 100,
-    alignSelf: "center",
-    marginRigt: 20,
-  },
-  row: {
-    alignItems: "center",
-    flexDirection: "row",
-    marginVertical: 20,
-  },
+  screen: { flex: 1, backgroundColor: colors.background },
+  appbar: { backgroundColor: colors.background },
+  appbarTitle: { fontWeight: '700', color: colors.text },
+  center: { flex: 1, justifyContent: 'center', alignItems: 'center', padding: spacing.xl },
+  emptyTitle: { ...typography.h2, marginTop: spacing.lg },
+  emptyText: { ...typography.muted, marginTop: spacing.xs, textAlign: 'center' },
+  scroll: { padding: spacing.lg, paddingBottom: spacing.xxl },
+  card: { backgroundColor: colors.surface, borderRadius: radius.lg, marginBottom: spacing.lg, ...shadow.card },
+  cardHead: { flexDirection: 'row', alignItems: 'center', padding: spacing.md },
+  headIcon: { backgroundColor: colors.primaryContainer, marginRight: spacing.sm },
+  service: { ...typography.h3 },
+  divider: { backgroundColor: colors.border },
+  label: { ...typography.label, marginTop: spacing.md, marginBottom: spacing.xs },
+  value: { ...typography.body },
+  row: { flexDirection: 'row', alignItems: 'center', marginVertical: spacing.sm },
+  image: { width: 76, height: 76, borderRadius: 38 },
+  workerInfo: { flex: 1, marginLeft: spacing.lg },
+  workerName: { ...typography.bodyStrong },
+  muted: { ...typography.muted, marginBottom: spacing.sm },
+  callBtn: { alignSelf: 'flex-start', borderRadius: radius.md },
 });

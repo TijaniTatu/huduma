@@ -1,8 +1,15 @@
 import React from 'react';
 import { View, StyleSheet, ScrollView, Alert } from 'react-native';
-import { Appbar, List, Switch } from 'react-native-paper';
+import { Appbar, List, Switch, Divider, Text } from 'react-native-paper';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { colors, spacing, radius, typography, shadow } from '../../theme/theme';
 
+const Section = ({ title, children }) => (
+  <View style={styles.section}>
+    <Text style={styles.sectionTitle}>{title}</Text>
+    <View style={styles.card}>{children}</View>
+  </View>
+);
 
 const Settings = ({ navigation }) => {
   const [notificationsEnabled, setNotificationsEnabled] = React.useState(false);
@@ -16,91 +23,65 @@ const Settings = ({ navigation }) => {
     navigation.replace('LoginScreen');
   }
 
+  const icon = (name, color = colors.primary) => () => <List.Icon icon={name} color={color} />;
+
   return (
     <View style={styles.container}>
-      <Appbar.Header>
-        <Appbar.BackAction onPress={() => navigation.goBack()} />
-        <Appbar.Content title="Settings" />
+      <Appbar.Header style={{ backgroundColor: colors.background }} statusBarHeight={0}>
+        <Appbar.BackAction onPress={() => navigation.goBack()} color={colors.text} />
+        <Appbar.Content title="Settings" titleStyle={{ fontWeight: '700', color: colors.text }} />
       </Appbar.Header>
-      <ScrollView>
-        <List.Section>
-          <List.Subheader>Preferences</List.Subheader>
+      <ScrollView contentContainerStyle={styles.scroll} showsVerticalScrollIndicator={false}>
+        <Section title="Preferences">
           <List.Item
-            title="Notifications" //backend required 
-            right={() => (
-              <Switch value={notificationsEnabled} onValueChange={toggleNotifications} />
-            )}
+            title="Notifications"
+            titleStyle={styles.itemTitle}
+            left={icon('bell-outline')}
+            right={() => <Switch value={notificationsEnabled} onValueChange={toggleNotifications} color={colors.primary} />}
           />
+        </Section>
 
-          {/* <List.Item
-            title="Language"
-            description="English"
-            onPress={() => navigation.navigate('LanguageSettings')}
-            left={() => <List.Icon icon="translate" />}
-          /> */}
-        </List.Section>
-        <List.Section>
-          <List.Subheader>Account</List.Subheader>
+        <Section title="Account">
+          <List.Item title="Change password" titleStyle={styles.itemTitle} left={icon('lock-outline')} right={icon('chevron-right', colors.textFaint)} onPress={() => navigation.navigate('ChangePasswordScreen')} />
+          <Divider style={styles.divider} />
+          <List.Item title="Change email address" titleStyle={styles.itemTitle} left={icon('email-outline')} right={icon('chevron-right', colors.textFaint)} onPress={() => navigation.navigate('ChangeEmailScreen')} />
+          <Divider style={styles.divider} />
+          <List.Item title="Build profile" titleStyle={styles.itemTitle} left={icon('account-edit-outline')} right={icon('chevron-right', colors.textFaint)} onPress={() => navigation.navigate('BuildProfileScreen')} />
+        </Section>
+
+        <Section title="About">
+          <List.Item title="About" titleStyle={styles.itemTitle} left={icon('information-outline')} right={icon('chevron-right', colors.textFaint)} onPress={() => navigation.navigate('About')} />
+          <Divider style={styles.divider} />
+          <List.Item title="Terms & conditions" titleStyle={styles.itemTitle} left={icon('file-document-outline')} right={icon('chevron-right', colors.textFaint)} onPress={() => navigation.navigate('TermsConditions')} />
+          <Divider style={styles.divider} />
+          <List.Item title="Help & support" titleStyle={styles.itemTitle} left={icon('help-circle-outline')} right={icon('chevron-right', colors.textFaint)} onPress={() => navigation.navigate('HelpSupport')} />
+        </Section>
+
+        <Section title="Feedback">
+          <List.Item title="Provide feedback" titleStyle={styles.itemTitle} left={icon('message-outline')} right={icon('chevron-right', colors.textFaint)} onPress={() => navigation.navigate('Feedback')} />
+        </Section>
+
+        <Section title="Account actions">
           <List.Item
-            title="Change Password"
-            onPress={() => navigation.navigate('ChangePasswordScreen')}//create a reset password screen...maybe can be similar to the forgot password
-            left={() => <List.Icon icon="lock" />}
-          />
-          <List.Item
-            title="Change Email Address"
-            onPress={() => navigation.navigate('ChangeEmailScreen')}//STONIE should create a screen
-            left={() => <List.Icon icon="shield-lock" />}
-          />
-          <List.Item
-            title="Build Profile"
-            onPress={() => navigation.navigate('BuildProfileScreen')}//sample screens from gpt
-            left={() => <List.Icon icon="shield" />}
-          />
-        </List.Section>
-        <List.Section>
-          <List.Subheader>About</List.Subheader>
-          <List.Item
-            title="About"
-            onPress={() => navigation.navigate('About')}
-            left={() => <List.Icon icon="information" />}
-          />
-          <List.Item
-            title="Terms & Conditions"
-            onPress={() => navigation.navigate('TermsConditions')}
-            left={() => <List.Icon icon="file-document" />}
-          />
-          <List.Item
-            title="Help & Support"
-            onPress={() => navigation.navigate('HelpSupport')}
-            left={() => <List.Icon icon="help-circle" />}
-          />
-        </List.Section>
-        <List.Section>
-          <List.Subheader>Feedback</List.Subheader>
-          <List.Item
-            title="Provide Feedback"
-            onPress={() => navigation.navigate('Feedback')}
-            left={() => <List.Icon icon="message" />}
-          />
-        </List.Section>
-        <List.Section>
-          <List.Subheader>Account Actions</List.Subheader>
-          <List.Item
-            title="Logout"
+            title="Log out"
+            titleStyle={[styles.itemTitle, { color: colors.danger }]}
+            left={icon('logout', colors.danger)}
             onPress={() => handleLogOut()}
-            left={() => <List.Icon icon="logout" />}
           />
-        </List.Section>
+        </Section>
       </ScrollView>
     </View>
   );
 };
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: '#f5f5f5',
-  },
+  container: { flex: 1, backgroundColor: colors.background },
+  scroll: { padding: spacing.lg, paddingBottom: spacing.xxl },
+  section: { marginBottom: spacing.lg },
+  sectionTitle: { ...typography.label, marginBottom: spacing.sm, marginLeft: spacing.xs },
+  card: { backgroundColor: colors.surface, borderRadius: radius.lg, overflow: 'hidden', ...shadow.soft },
+  itemTitle: { ...typography.body, fontWeight: '500' },
+  divider: { backgroundColor: colors.border, marginLeft: 56 },
 });
 
 export default Settings;

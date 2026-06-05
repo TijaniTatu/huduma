@@ -10,6 +10,8 @@ import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 import { updateProfile } from 'firebase/auth';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as DocumentPicker from 'expo-document-picker';
+import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
+import { colors, spacing, radius, typography, shadow } from '../../theme/theme';
 
 
 export default function WorkerBuildProfile({navigation}) {
@@ -91,7 +93,7 @@ export default function WorkerBuildProfile({navigation}) {
 
   const pickImage = async () => {
     let result = ImagePicker.launchImageLibraryAsync({
-      mediaTypes: ImagePicker.MediaTypeOptions.All,
+      mediaTypes: ['images', 'videos'],
       allowsEditing: true,
       aspect: [4, 3],
       quality: 0.7,
@@ -104,7 +106,7 @@ export default function WorkerBuildProfile({navigation}) {
 
   const pickID = async () => {
     let result = ImagePicker.launchImageLibraryAsync({
-      mediaTypes: ImagePicker.MediaTypeOptions.All,
+      mediaTypes: ['images', 'videos'],
       allowsEditing: true,
       aspect: [4, 3],
       quality: 0.7,
@@ -254,125 +256,137 @@ export default function WorkerBuildProfile({navigation}) {
   }
 
   return (
-    <View style={{ flex: 1 }}>
-      <Appbar.Header>
-
+    <View style={{ flex: 1, backgroundColor: colors.background }}>
+      <Appbar.Header style={{ backgroundColor: colors.background }} statusBarHeight={0}>
+        <Appbar.BackAction onPress={() => navigation.goBack()} color={colors.text} />
+        <Appbar.Content title="Worker profile" titleStyle={{ fontWeight: '700', color: colors.text }} />
       </Appbar.Header>
-      <ScrollView style={styles.container}>
-        <KeyboardAvoidingView behavior='position' style={{ flex: 1 }}>
-          <Text style={{ textAlign: 'center', fontSize: 20 }}>Lets Get You Going</Text>
-          <TouchableOpacity onPress={() => pickImage()}>
-            <Image
-              style={styles.image}
-              source={{ uri: imageURL }}
-              placeholder={{ blurhash }}
-              contentFit="cover"
-              transition={1000}
-            />
-          </TouchableOpacity>
-          <Text>What best describes your occupation </Text>
+      <ScrollView contentContainerStyle={styles.scroll} showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled">
+        <Text style={styles.headerText}>Let's get you hired</Text>
+        <Text style={styles.subtitle}>Add your trade and verification documents.</Text>
+
+        <TouchableOpacity onPress={() => pickImage()} style={styles.avatarWrap} activeOpacity={0.85}>
+          {imageURL ? (
+            <Image style={styles.image} source={{ uri: imageURL }} placeholder={{ blurhash }} contentFit="cover" transition={1000} />
+          ) : (
+            <View style={[styles.image, styles.imagePlaceholder]}>
+              <MaterialCommunityIcons name="account-plus-outline" size={40} color={colors.textMuted} />
+            </View>
+          )}
+          <View style={styles.cameraBadge}>
+            <MaterialCommunityIcons name="camera" size={16} color="#fff" />
+          </View>
+        </TouchableOpacity>
+
+        <View style={styles.card}>
+          <Text style={styles.label}>What best describes your trade?</Text>
           <SegmentedButtons
             value={occupation}
             onValueChange={setOccupation}
-            buttons={
-              [
-                {
-                  value: 'Electrician',
-                  label: 'Electrician'
-                },
-                {
-                  value: 'Plumber',
-                  label: 'Plumber'
-                },
-                {
-                  value: 'Maid',
-                  label: 'Maid'
-                }
-              ]
-            }
+            style={styles.segmented}
+            buttons={[
+              { value: 'Electrician', label: 'Electrician' },
+              { value: 'Plumber', label: 'Plumber' },
+              { value: 'Maid', label: 'Maid' },
+            ]}
           />
           <TextInput
             value={name}
             onChangeText={(text) => setName(text)}
             mode='outlined'
-            label='user name'
+            label='Full name'
             disabled={loading}
+            style={styles.input}
+            outlineColor={colors.border}
+            activeOutlineColor={colors.primary}
+            left={<TextInput.Icon icon="account-outline" />}
           />
           <TextInput
             value={phoneNumber}
             onChangeText={(text) => setPhoneNumber(text)}
             mode='outlined'
-            label='phone number'
+            label='Phone number'
+            keyboardType="phone-pad"
             disabled={loading}
+            style={styles.input}
+            outlineColor={colors.border}
+            activeOutlineColor={colors.primary}
+            left={<TextInput.Icon icon="phone-outline" />}
           />
 
-          <TouchableOpacity onPress={() => setOpen(true)}>
-            {date ?
-              (<>
-                <Text style={{ fontSize: 20 }}>
-                  D.O.B  {date.toString()}
-                </Text>
-              </>) :
-              (<>
-                <Text style={{ fontSize: 20, margin: 10 }}>
-                  Dob
-                </Text>
-              </>)}
-
+          <TouchableOpacity onPress={() => setOpen(true)} style={styles.fieldRow}>
+            <MaterialCommunityIcons name="calendar-outline" size={22} color={colors.textMuted} />
+            <Text style={styles.fieldText}>{date ? `Date of birth: ${date.toString().slice(0,15)}` : 'Set date of birth'}</Text>
+            <MaterialCommunityIcons name="chevron-right" size={22} color={colors.textFaint} />
           </TouchableOpacity>
-          <DatePickerModal
-            mode="single"
-            visible={open}
-            onDismiss={onDismissSingle}
-            date={date}
-            onConfirm={onConfirmSingle}
-            label='Select your Birth Date'
-          />
-          {loading ? (<>
-            <ActivityIndicator animating />
-          </>) :
-            (<>
-              <View style={{ marginTop: 10, ...styles.formItem }}>
-                <Text> National ID front side : {idPhotoName} </Text>
-                <Button onPress={() => pickID()} mode='contained'> Pick ID Photo </Button>
+        </View>
+
+        <DatePickerModal
+          mode="single"
+          visible={open}
+          onDismiss={onDismissSingle}
+          date={date}
+          onConfirm={onConfirmSingle}
+          label='Select your Birth Date'
+        />
+
+        {loading ? (
+          <View style={styles.center}><ActivityIndicator animating color={colors.primary} size={48} /></View>
+        ) : (
+          <>
+            <Text style={styles.sectionLabel}>Verification documents</Text>
+            <View style={styles.card}>
+              <View style={styles.uploadRow}>
+                <MaterialCommunityIcons name={idPhotoName ? 'check-circle' : 'card-account-details-outline'} size={24} color={idPhotoName ? colors.success : colors.textMuted} />
+                <View style={styles.uploadInfo}>
+                  <Text style={styles.uploadTitle}>National ID (front)</Text>
+                  <Text style={styles.uploadMeta} numberOfLines={1}>{idPhotoName || 'No file selected'}</Text>
+                </View>
+                <Button onPress={() => pickID()} mode='contained-tonal' compact>Pick</Button>
               </View>
-              <View style={styles.formItem}>
-                <Text> Certificate for job : {fileName} </Text>
-                <Button onPress={() => pickCertificate()} mode='outlined'> Pick Certificare </Button>
+              <Divider style={styles.divider} />
+              <View style={styles.uploadRow}>
+                <MaterialCommunityIcons name={fileName ? 'check-circle' : 'file-document-outline'} size={24} color={fileName ? colors.success : colors.textMuted} />
+                <View style={styles.uploadInfo}>
+                  <Text style={styles.uploadTitle}>Trade certificate (PDF)</Text>
+                  <Text style={styles.uploadMeta} numberOfLines={1}>{fileName || 'No file selected'}</Text>
+                </View>
+                <Button onPress={() => pickCertificate()} mode='contained-tonal' compact>Pick</Button>
               </View>
-              <Button onPress={() => updateUserProfile()} mode='elevated'> BUILD PROFILE </Button>
-            </>)}
-        </KeyboardAvoidingView>
+            </View>
+            <Button onPress={() => updateUserProfile()} mode='contained' style={styles.buildBtn} contentStyle={{ height: 50 }} labelStyle={{ fontSize: 16, fontWeight: '700' }}>Build profile</Button>
+          </>
+        )}
       </ScrollView>
     </View>
   )
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, marginHorizontal: 20, marginTop: 40, },
-  input: { marginVertical: 5, borderRadius: 0 },
-  row: {
-    alignItems: "center",
-    flexDirection: "row",
-    marginVertical: 20,
+  scroll: { padding: spacing.lg, paddingBottom: spacing.xxl },
+  center: { paddingVertical: spacing.xxxl, alignItems: 'center' },
+  headerText: { ...typography.h1, textAlign: 'center', marginTop: spacing.xs },
+  subtitle: { ...typography.muted, textAlign: 'center', marginBottom: spacing.lg },
+  avatarWrap: { alignSelf: 'center', marginBottom: spacing.lg },
+  image: { width: 120, height: 120, borderRadius: 60, alignSelf: 'center', backgroundColor: colors.surfaceAlt },
+  imagePlaceholder: { alignItems: 'center', justifyContent: 'center', borderWidth: 1.5, borderColor: colors.border, borderStyle: 'dashed' },
+  cameraBadge: {
+    position: 'absolute', bottom: 0, right: 0,
+    width: 34, height: 34, borderRadius: 17,
+    backgroundColor: colors.primary, alignItems: 'center', justifyContent: 'center',
+    borderWidth: 2, borderColor: colors.background,
   },
-  textContainer: { alignContent: 'center', alignItems: 'center' },
-  Information: {
-    color: 'purple',
-    fontSize: 15,
-  },
-  textLink: {
-    color: 'orange',
-    marginLeft: 2,
-    fontSize: 15
-  }, image: {
-    width: 200,
-    height: 200,
-    borderRadius: 100,
-    alignSelf: "center",
-    marginBottom: 20
-  }, formItem: {
-    justifyContent: 'space-evenly',
-    marginBottom: 10
-  }
+  card: { backgroundColor: colors.surface, borderRadius: radius.lg, padding: spacing.lg, ...shadow.card, marginBottom: spacing.lg },
+  label: { ...typography.label, marginBottom: spacing.sm },
+  sectionLabel: { ...typography.label, marginBottom: spacing.sm, marginLeft: spacing.xs },
+  segmented: { marginBottom: spacing.md },
+  input: { marginBottom: spacing.md, backgroundColor: colors.surface },
+  fieldRow: { flexDirection: 'row', alignItems: 'center', paddingTop: spacing.md, borderTopWidth: 1, borderTopColor: colors.border },
+  fieldText: { ...typography.body, flex: 1, marginLeft: spacing.md },
+  uploadRow: { flexDirection: 'row', alignItems: 'center', paddingVertical: spacing.sm },
+  uploadInfo: { flex: 1, marginLeft: spacing.md },
+  uploadTitle: { ...typography.bodyStrong },
+  uploadMeta: { ...typography.caption },
+  divider: { backgroundColor: colors.border, marginVertical: spacing.xs },
+  buildBtn: { borderRadius: radius.md },
 });
