@@ -1,364 +1,314 @@
+'use strict';
+
 const express = require('express');
 const cookieParser = require('cookie-parser');
-const bodyParser = require('body-parser');
-require("dotenv").config();
+const cors = require('cors');
 
-const { collection, getDocs, count } = require('firebase/firestore');
+const { adminDb, clientAuth } = require('../config/firebase');
 const {
-    getUser,
-    listAllUsers    
-    , createUser
-    , countUsers,
-    getAcceptedRequests,
-    getWorkers
-    , deleteUser,
-    getJobHistory,
-    getComplaints,
-    getUnapprovedWorkers,
-    approveWorker,
-    banUser,
-    unBanUser,
-    getWorkerDistribution } = require("./manage_users")
+  createUserWithEmailAndPassword,
+  signInWithEmailAndPassword,
+  sendEmailVerification,
+  sendPasswordResetEmail,
+} = require('firebase/auth');
+const { Expo } = require('expo-server-sdk');
 
+const verifyToken = require('../middleware/index');
+const {
+  getUser,
+  listAllUsers,
+  createUser,
+  countUsers,
+  getAcceptedRequests,
+  getWorkers,
+  deleteUser,
+  getJobHistory,
+  getComplaints,
+  getUnapprovedWorkers,
+  approveWorker,
+  banUser,
+  unBanUser,
+  getClients,
+  getWorkerDistribution,
+  clearComplaint,
+} = require('./manage_users');
 
-
-const verifyToken = require("../middleware/index");
-const cors = require("cors")
 const app = express();
+const port = process.env.PORT || 3000;
+
 app.use(cookieParser());
-app.use(express.json());
 app.use(cors());
-app.use(bodyParser.json({ limit: '50mb' }));
-app.use(bodyParser.urlencoded({ extended: true }));
-app.use(express.urlencoded({ limit: '50mb' }));
-const port = 3000;
+app.use(express.json({ limit: '50mb' }));
+app.use(express.urlencoded({ extended: true, limit: '50mb' }));
 
-app.post('/api/register', (req, res) => {
-    const { email, password } = req.body;
-    if (!email || !password) {
-        return res.status(402).json({
-            email: "Email required",
-            password: "Password required"
-        });
-    }
-    createUserWithEmailAndPassword(auth, email, password)
-        .then((userCredential) => {
-            sendEmailVerification(auth.currentUser)
-                .then(() => {
-                    res.status(201).json({ message: "Verification email sent! User created successfully!" });
-                })
-                .catch((error) => {
-                    console.error(error);
-                    res.status(500).json({ error: "Error sending email verification" });
-                });
-        })
-        .catch((error) => {
-            const errorMessage = error.message || "An error occurred while registering user";
-            res.status(500).json({ error: errorMessage });
-        });
+// Admin routes are gated behind auth only when REQUIRE_AUTH=true, so the
+// existing (tokenless) admin UI keeps working until it gains a login flow.
+const adminGuard = process.env.REQUIRE_AUTH === 'true' ? verifyToken : (req, res, next) => next();
+
+/* ------------------------------- Auth / app API ------------------------------ */
+
+app.post('/api/register', async (req, res) => {
+  const { email, password } = req.body;
+  if (!email || !password) {
+    return res.status(422).json({ email: 'Email required', password: 'Password required' });
+  }
+  try {
+    await createUserWithEmailAndPassword(clientAuth, email, password);
+    await sendEmailVerification(clientAuth.currentUser);
+    res.status(201).json({ message: 'Verification email sent! User created successfully!' });
+  } catch (error) {
+    res.status(500).json({ error: error.message || 'An error occurred while registering user' });
+  }
 });
 
-app.post('/api/login', (req, res) => {
-    const { email, password } = req.body;
-    if (!email || !password) {
-        return res.status(422).json({
-            email: "Email is required",
-            password: "Password is required",
-        });
-    }
-    signInWithEmailAndPassword(auth, email, password)
-        .then((userCredential) => {
-            const idToken = userCredential._tokenResponse.idToken
-            if (idToken) {
-                res.cookie('access_token', idToken, {
-                    httpOnly: true
-                });
-                res.status(200).json({ message: "User logged in successfully", userCredential });
-            } else {
-                res.status(500).json({ error: "Internal Server Error" });
-            }
-        })
-        .catch((error) => {
-            console.error(error);
-            const errorMessage = error.message || "An error occurred while logging in";
-            res.status(500).json({ error });
-        });
+app.post('/api/login', async (req, res) => {
+  const { email, password } = req.body;
+  if (!email || !password) {
+    return res.status(422).json({ email: 'Email is required', password: 'Password is required' });
+  }
+  try {
+    const userCredential = await signInWithEmailAndPassword(clientAuth, email, password);
+    const idToken = await userCredential.user.getIdToken();
+    res.cookie('access_token', idToken, { httpOnly: true });
+    res.status(200).json({ message: 'User logged in successfully', uid: userCredential.user.uid });
+  } catch (error) {
+    res.status(401).json({ error: error.message || 'An error occurred while logging in' });
+  }
 });
 
-app.post('/api/resetpassword', (req, res) => {
-    const { email } = req.body;
-    if (!email) {
-        return res.status(422).json({
-            email: "Email is required"
-        });
-    }
-    sendPasswordResetEmail(auth, email)
-        .then(() => {
-            res.status(200).json({ message: "Password reset email sent successfully!" });
-        })
-        .catch((error) => {
-            console.error(error);
-            res.status(500).json({ error: "Internal Server Error" });
-        });
+app.post('/api/resetpassword', async (req, res) => {
+  const { email } = req.body;
+  if (!email) {
+    return res.status(422).json({ email: 'Email is required' });
+  }
+  try {
+    await sendPasswordResetEmail(clientAuth, email);
+    res.status(200).json({ message: 'Password reset email sent successfully!' });
+  } catch (error) {
+    res.status(500).json({ error: error.message || 'Internal Server Error' });
+  }
 });
 
-app.post('/api/buildprofile', (req, res) => {
-    /*
-        uuid,
-        username,
-        phone_number,
-        email,
-     */
-
-    let userProfileData = {};
-    userProfileData = req.body;
-
-    console.log(userProfileData);
-
-    db.collection('users')
-        .doc('Workers')
-        .set(userProfileData)
-        .then(result => {
-            res.json(result);
-        }).catch(err => {
-            res.json(err);
-        });
-
-
+app.post('/api/buildprofile', async (req, res) => {
+  const { uid, ...profile } = req.body;
+  if (!uid) {
+    return res.status(400).json({ error: 'uid is required' });
+  }
+  try {
+    await adminDb.collection('Users').doc(uid).set(profile, { merge: true });
+    res.status(200).json({ message: 'Profile saved' });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
 });
 
-app.get('/api/getusers', (req, res) => {
-    let users = [];
-    getDocs(collection(FIRESTORE_DB, 'Users'))
-        .then((snapshot) => {
-            snapshot.forEach((doc) => {
-                let uid = doc.id
-                users.push({ uid, ...doc.data() });
-                console.log(doc.id, '=>', doc.data());
-            })
-            res.json(users);
-        }).catch(err => {
-            console.error(err);
-            res.send(err);
-        })
+app.get('/api/getusers', async (req, res) => {
+  try {
+    const snapshot = await adminDb.collection('Users').get();
+    const users = snapshot.docs.map((doc) => ({ uid: doc.id, ...doc.data() }));
+    res.json(users);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
 });
-// sends Expo Push Token to document
-app.post('/api/expoPushTokens', (req, res) => {
-    const { token, userId } = req.body;
-    if (!token || !userId) {
-        return res.status(400).json({ error: "Token and userId are required" });
-    }
 
-    const userDoc = doc(FIRESTORE_DB, 'Users', userId);
-    setDoc(userDoc, { expoPushToken: token }, { merge: true })
-        .then(() => res.status(200).json({ message: "Expo push token saved successfully" }))
-        .catch(error => res.status(500).json({ error: error.message }));
+// Stores an Expo push token against a user document.
+app.post('/api/expoPushTokens', async (req, res) => {
+  const { token, userId, uid } = req.body;
+  const id = userId || uid;
+  if (!token || !id) {
+    return res.status(400).json({ error: 'Token and userId are required' });
+  }
+  try {
+    await adminDb.collection('Users').doc(id).set({ expoPushToken: token }, { merge: true });
+    res.status(200).json({ message: 'Expo push token saved successfully' });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
 });
-// Send Notification
+
 app.post('/api/sendNotification', async (req, res) => {
-    const { userId, message } = req.body;
-    if (!userId || !message) {
-        return res.status(400).json({ error: "UserId and message are required" });
+  const { userId, message } = req.body;
+  if (!userId || !message) {
+    return res.status(400).json({ error: 'UserId and message are required' });
+  }
+  try {
+    const userSnap = await adminDb.collection('Users').doc(userId).get();
+    if (!userSnap.exists) {
+      return res.status(404).json({ error: 'User not found' });
+    }
+    const expoPushToken = userSnap.data().expoPushToken;
+    if (!expoPushToken || !Expo.isExpoPushToken(expoPushToken)) {
+      return res.status(400).json({ error: 'Valid Expo push token not found for user' });
     }
 
-    try {
-        const userDoc = doc(FIRESTORE_DB, 'Users', userId);
-        const userSnap = await getDoc(userDoc);
-
-        if (!userSnap.exists()) {
-            return res.status(404).json({ error: "User not found" });
-        }
-
-        const expoPushToken = userSnap.data().expoPushToken;
-        if (!expoPushToken) {
-            return res.status(400).json({ error: "Expo push token not found for user" });
-        }
-
-        const expo = new Expo();
-        const messages = [{
-            to: expoPushToken,
-            sound: 'default',
-            body: message,
-        }];
-
-        const chunks = expo.chunkPushNotifications(messages);
-        const tickets = [];
-
-        for (const chunk of chunks) {
-            try {
-                const ticketChunk = await expo.sendPushNotificationsAsync(chunk);
-                tickets.push(...ticketChunk);
-            } catch (error) {
-                console.error(error);
-                return res.status(500).json({ error: "Error sending push notification" });
-            }
-        }
-
-        res.status(200).json({ message: "Notification sent successfully", tickets });
-    } catch (error) {
-        console.error(error);
-        res.status(500).json({ error: error.message });
+    const expo = new Expo();
+    const chunks = expo.chunkPushNotifications([
+      { to: expoPushToken, sound: 'default', body: message },
+    ]);
+    const tickets = [];
+    for (const chunk of chunks) {
+      tickets.push(...(await expo.sendPushNotificationsAsync(chunk)));
     }
+    res.status(200).json({ message: 'Notification sent successfully', tickets });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ error: error.message });
+  }
 });
 
-app.get('/admin/getworkerdistribution', (req,res)=>{
-    getWorkerDistribution()
-        .then((data)=> {
-            res.json(data)
-            console.log(data);
-        }
-        )
-        .catch((err)=> res.send(err));
-})
+/* --------------------------------- Admin API --------------------------------- */
 
-app.get('/admin/unbanuser/:id', (req, res) => {
-    let { id } = req.params;
-    unBanUser(id)
-        .then(() => {
-            res.status(200).send('success');
-        }).catch(err => {
-            console.error(err);
-            res.status(400).send(err);
-        })
-})
-
-
-app.get('/admin/banuser/:id', (req, res) => {
-    let { id } = req.params;
-    banUser(id)
-        .then(() => {
-            res.status(200).send('success');
-        }).catch(err => {
-            console.error(err);
-            res.status(400).send(err);
-        })
-})
-
-app.get('/admin/approveworker/:id', (req, res) => {
-    let { id } = req.params;
-    approveWorker(id)
-        .then(() => {
-            res.status(200).send("success");
-        }).catch(err => {
-            console.error(err);
-        })
-})
-
-app.get('/admin/awaitingapproval', (req, res) => {
-    getUnapprovedWorkers()
-        .then(data => {
-            res.status(200).json(data);
-        }).catch(err => {
-            res.status(400).send(err);
-        })
+app.get('/admin/getworkerdistribution', adminGuard, async (req, res) => {
+  try {
+    res.json(await getWorkerDistribution());
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
 });
 
-app.get('/admin/complaints', (req, res) => {
-    getComplaints()
-        .then((resp) => {
-            res.json(resp)
-        }).catch(err => {
-            res.status(200).send(err);
-        })
+app.get('/admin/unbanuser/:id', adminGuard, async (req, res) => {
+  try {
+    await unBanUser(req.params.id);
+    res.status(200).send('success');
+  } catch (err) {
+    res.status(400).json({ error: err.message });
+  }
 });
 
-app.get('/admin/clearcomplaint/:id', (req, res) => {
-
-})
-
-app.get('/admin/jobhistory', (req, res) => {
-    getJobHistory()
-        .then((resp) => {
-            res.json(resp)
-        }).catch(err => res.send)
-})
-
-app.get('/admin/countusers', (req, res) => {
-    countUsers()
-        .then((count) => {
-            res.json(count);
-        })
-        .catch((error) => {
-            console.error(error)
-        })
+app.get('/admin/banuser/:id', adminGuard, async (req, res) => {
+  try {
+    await banUser(req.params.id);
+    res.status(200).send('success');
+  } catch (err) {
+    res.status(400).json({ error: err.message });
+  }
 });
 
-app.get('/admin/listallusers', (req, res) => {
-    listAllUsers()
-        .then(result => {
-            res.json(result);
-        }).catch(err => {
-            res.status(400).send(err);
-        })
-})
+app.get('/admin/approveworker/:id', adminGuard, async (req, res) => {
+  try {
+    await approveWorker(req.params.id);
+    res.status(200).send('success');
+  } catch (err) {
+    res.status(400).json({ error: err.message });
+  }
+});
 
-app.get('/admin/getworkers', async (req, res) => {
-    try {
-        const { workers, count } = await getWorkers();
-        res.json({ workers, count });
-    } catch (error) {
-        res.status(500).json({ error: 'Unable to fetch workers' });
+app.get('/admin/awaitingapproval', adminGuard, async (req, res) => {
+  try {
+    res.status(200).json(await getUnapprovedWorkers());
+  } catch (err) {
+    res.status(400).json({ error: err.message });
+  }
+});
+
+app.get('/admin/complaints', adminGuard, async (req, res) => {
+  try {
+    res.json(await getComplaints());
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+app.get('/admin/clearcomplaint/:id', adminGuard, async (req, res) => {
+  try {
+    await clearComplaint(req.params.id);
+    res.status(200).send('success');
+  } catch (err) {
+    res.status(400).json({ error: err.message });
+  }
+});
+
+app.get('/admin/jobhistory', adminGuard, async (req, res) => {
+  try {
+    res.json(await getJobHistory());
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+app.get('/admin/countusers', adminGuard, async (req, res) => {
+  try {
+    res.json(await countUsers());
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+app.get('/admin/listallusers', adminGuard, async (req, res) => {
+  try {
+    res.json(await listAllUsers());
+  } catch (err) {
+    res.status(400).json({ error: err.message });
+  }
+});
+
+app.get('/admin/getworkers', adminGuard, async (req, res) => {
+  try {
+    res.json(await getWorkers());
+  } catch (error) {
+    res.status(500).json({ error: 'Unable to fetch workers' });
+  }
+});
+
+app.get('/admin/getclients', adminGuard, async (req, res) => {
+  try {
+    res.json(await getClients());
+  } catch (error) {
+    res.status(500).json({ error: 'Error fetching clients' });
+  }
+});
+
+app.get('/admin/user/:uid', adminGuard, async (req, res) => {
+  try {
+    const userData = await getUser(req.params.uid);
+    if (userData) {
+      res.json(userData);
+    } else {
+      res.status(404).json({ error: 'User not found' });
     }
-});
-app.get('/admin/user/:uid', async (req, res) => {
-    const { uid } = req.params;
-    console.log(uid);
-    try {
-        const userData = await getUser(uid);
-        if (userData) {
-            res.json(userData);
-        } else {
-            res.status(404).json({ error: 'User not found' });
-        }
-    } catch (error) {
-        console.error(error);
-        res.status(500).json({ error: 'Internal Server Error' });
-    }
+  } catch (error) {
+    res.status(500).json({ error: 'Internal Server Error' });
+  }
 });
 
-app.get('/admin/acceptedRequests', async (req, res) => {
-    try {
-        const { acceptedRequests, totalAcceptedRequests } = await getAcceptedRequests();
-        res.json({ acceptedRequests, totalAcceptedRequests });
-    } catch (error) {
-        console.error('Error handling request:', error);
-        res.status(500).json({ error: 'Failed to retrieve accepted requests' });
-    }
+app.get('/admin/acceptedRequests', adminGuard, async (req, res) => {
+  try {
+    res.json(await getAcceptedRequests());
+  } catch (error) {
+    res.status(500).json({ error: 'Failed to retrieve accepted requests' });
+  }
 });
 
-app.post('/admin/createuser', async (req, res) => {
-    const userData = req.body;
-
-    try {
-        const result = await createUser(userData);
-        if (result.success) {
-            res.status(201).json({ message: 'User created successfully', uid: result.uid });
-        } else {
-            res.status(500).json({ error: result.error });
-        }
-    } catch (error) {
-        console.error('Error creating user:', error);
-        res.status(500).json({ error: 'Internal Server Error' });
-    }
+// Alias used by the dashboard; returns the accepted-request totals.
+app.get('/admin/countacceptedrequests', adminGuard, async (req, res) => {
+  try {
+    res.json(await getAcceptedRequests());
+  } catch (error) {
+    res.status(500).json({ error: 'Failed to retrieve accepted requests' });
+  }
 });
 
-
-app.get('/admin/deleteuser/:uid', (req, res) => {
-    let { uid } = req.params;
-    deleteUser(uid)
-        .then(() => {
-            res.status(200).send('User Deleted')
-        }).catch(err => res.status(400).send(err));
-})
-app.get('/admin/getclients', async (req, res) => {
-    try {
-      const result = await getClients();
-      res.json(result);
-    } catch (error) {
-      console.error('Error fetching clients:', error);
-      res.status(500).json({ error: 'Error fetching clients' });
+app.post('/admin/createuser', adminGuard, async (req, res) => {
+  try {
+    const result = await createUser(req.body);
+    if (result.success) {
+      res.status(201).json({ message: 'User created successfully', uid: result.uid });
+    } else {
+      res.status(500).json({ error: result.error });
     }
-  });
+  } catch (error) {
+    res.status(500).json({ error: 'Internal Server Error' });
+  }
+});
 
+app.get('/admin/deleteuser/:uid', adminGuard, async (req, res) => {
+  try {
+    await deleteUser(req.params.uid);
+    res.status(200).send('User Deleted');
+  } catch (err) {
+    res.status(400).json({ error: err.message });
+  }
+});
 
 app.listen(port, () => console.log(`Server listening on port ${port}!`));
