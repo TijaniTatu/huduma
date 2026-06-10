@@ -3,7 +3,14 @@ import React, { useEffect } from "react";
 import "react-native-gesture-handler";
 import { NavigationContainer } from "@react-navigation/native";
 import { createNativeStackNavigator } from "@react-navigation/native-stack";
-import { MD2LightTheme as DefaultTheme, MD2Colors, MD3DarkTheme, MD3LightTheme, PaperProvider } from "react-native-paper";
+import { PaperProvider } from "react-native-paper";
+import { MaterialCommunityIcons } from "@expo/vector-icons";
+import { paperTheme, colors } from "../theme/theme";
+
+// Render all react-native-paper icons through @expo/vector-icons, which bundles
+// and auto-loads the MaterialCommunityIcons font (react-native-vector-icons does
+// not auto-load fonts in Expo, which showed icons as missing-glyph boxes).
+const paperSettings = { icon: (props) => <MaterialCommunityIcons {...props} /> };
 
 import Login from "../Screens/Login";
 import Register from "../Screens/Register";
@@ -33,24 +40,23 @@ import WorkerPayment from "../Screens/WorkerScreens/WorkerPayment";
 const Stack = createNativeStackNavigator();
 const noHeader = { headerShown: false };
 
-const theme = {
-    ...DefaultTheme,
-    roundness: 0,
-    colors: {
-      ...DefaultTheme.colors,
-      primary: "#FF7000",
-      accent: "#FFAC4A",
-      background: "#FFFFFF",
-      text: "#000000",
-    },
-  };
+const theme = paperTheme;
+
+const screenOptions = {
+    headerStyle: { backgroundColor: colors.background },
+    headerShadowVisible: false,
+    headerTintColor: colors.text,
+    headerTitleStyle: { fontWeight: '700', color: colors.text },
+    contentStyle: { backgroundColor: colors.background },
+    headerBackTitleVisible: false,
+};
 
 const AuthStack = () => {
     return (
-        <PaperProvider theme={theme}>
+        <PaperProvider theme={theme} settings={paperSettings}>
             <NavigationContainer>
 
-                <Stack.Navigator initialRouteName="SplashScreen">
+                <Stack.Navigator initialRouteName="SplashScreen" screenOptions={screenOptions}>
 
                     <Stack.Screen
                         name="LoginScreen"

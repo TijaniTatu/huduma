@@ -1,56 +1,24 @@
 'use strict';
 
-const { initializeApp } = require('firebase-admin/app');
-const { getAuth } = require('firebase-admin/auth');
-const { getFirestore } = require('firebase-admin/firestore');
-
-const serviceAccount = require("../config/huduma-4bc13-firebase-adminsdk-ogdgh-e3b6545e86.json");
-const admin = require("firebase-admin");
-
-admin.initializeApp({
-  credential: admin.credential.cert(serviceAccount),
-  databaseURL: "https://huduma-4bc13-default-rtdb.firebaseio.com"
-});
-
-const db = getFirestore();
+const { adminDb: db, adminAuth } = require('../config/firebase');
 
 async function getUser(uid) {
   try {
-    const userRecord = await getAuth().getUser(uid);
     const userDoc = await db.collection('Users').doc(uid).get();
-    console.log(userDoc)
-    return (userDoc.data());
-    console.log(userRecord);
     if (!userDoc.exists) {
       console.log('No such document in Firestore!');
-    } else {
-      console.log('User data from Auth:', userRecord.toJSON());
-      console.log('User data from Firestore:', userDoc.data());
+      return null;
     }
+    return userDoc.data();
   } catch (error) {
-    console.log('Error fetching user data:', error);
-  }
-}
-
-
-async function getUserByEmail(email) {
-  try {
-    const userRecord = await getAuth().getUserByEmail(email);
-    const userDoc = await db.collection('Users').doc(userRecord.uid).get();
-    if (!userDoc.exists) {
-      console.log('No such document in Firestore!');
-    } else {
-      console.log('User data from Auth:', userRecord.toJSON());
-      console.log('User data from Firestore:', userDoc.data());
-    }
-  } catch (error) {
-    console.log('Error fetching user data:', error);
+    console.error('Error fetching user data:', error);
+    throw error;
   }
 }
 
 async function createUser(data) {
   try {
-    const userRecord = await getAuth().createUser(data);
+    const userRecord = await adminAuth.createUser(data);
     await db.collection('Users').doc(userRecord.uid).set({
       address: data.address || '',
       dob: data.dob || '',
@@ -60,17 +28,17 @@ async function createUser(data) {
       username: data.username || data.email,
     });
     console.log('Successfully created new user:', userRecord.uid);
+    return { success: true, uid: userRecord.uid };
   } catch (error) {
-    console.log('Error creating new user:', error);
+    console.error('Error creating new user:', error);
+    return { success: false, error: error.message };
   }
 }
 
-
 async function updateUser(uid, data) {
   try {
-    const userRecord = await getAuth().updateUser(uid, data);
-    const userRef = db.collection('Users').doc(uid);
-    await userRef.update({
+    await adminAuth.updateUser(uid, data);
+    await db.collection('Users').doc(uid).update({
       address: data.address,
       dob: data.dob,
       'phone number': data.phoneNumber,
@@ -78,64 +46,52 @@ async function updateUser(uid, data) {
       secEmail: data.secEmail,
       username: data.username,
     });
-    console.log('Successfully updated user:', userRecord.toJSON());
+    console.log('Successfully updated user:', uid);
   } catch (error) {
-    console.log('Error updating user:', error);
+    console.error('Error updating user:', error);
+    throw error;
   }
 }
 
-// Function to delete a user
 async function deleteUser(uid) {
   try {
-    await getAuth().deleteUser(uid);
+    await adminAuth.deleteUser(uid);
     await db.collection('Users').doc(uid).delete();
     console.log('Successfully deleted user');
   } catch (error) {
-    console.log('Error deleting user:', error);
+    console.error('Error deleting user:', error);
+    throw error;
   }
 }
-
 
 async function listAllUsers() {
   try {
-    const listUsersResult = await getAuth().listUsers(1000);
-    let UserArray = [];
-    for (const userRecord of listUsersResult.users) {
-      console.log('User from Auth:', userRecord.toJSON());
-      UserArray.push(userRecord.toJSON());
-
-      const userDoc = await db.collection('Users').doc(userRecord.uid).get();
-      if (userDoc.exists) {
-        console.log('User from Firestore:', userDoc.data());
-      } else {
-        console.log('No Firestore document for user:', userRecord.uid);
-      }
-    }
-    return (UserArray);
+    const listUsersResult = await adminAuth.listUsers(1000);
+    return listUsersResult.users.map((u) => u.toJSON());
   } catch (error) {
-    console.log('Error listing users:', error);
+    console.error('Error listing users:', error);
+    throw error;
   }
 }
+
 async function countUsers() {
   try {
-    const listUsersResult = await getAuth().listUsers(1000);
-    const totalUsers = listUsersResult.users.length;
-    return (totalUsers);
-
+    const listUsersResult = await adminAuth.listUsers(1000);
+    return listUsersResult.users.length;
   } catch (error) {
     console.error('Error counting users:', error);
-    res.status(500).send('Error counting users');
+    throw error;
   }
 }
+
 async function getWorkers() {
   try {
     const snapshot = await db.collection('Users').where('role', '==', 'worker').get();
-    let workers = [];
-    snapshot.forEach(doc => {
+    const workers = [];
+    snapshot.forEach((doc) => {
       const data = doc.data();
-      let uid = doc.id;
       if (data.approved) {
-        workers.push({ ...data, uid });
+        workers.push({ ...data, uid: doc.id });
       }
     });
     return { workers, count: workers.length };
@@ -144,15 +100,13 @@ async function getWorkers() {
     throw new Error('Unable to fetch workers');
   }
 }
+
 async function getUnapprovedWorkers() {
   try {
     const snapshot = await db.collection('Users').where('approved', '==', false).get();
-    let workers = [];
-    snapshot.forEach(doc => {
-      const data = doc.data();
-      let uid = doc.id;
-      console.log(data);
-      workers.push({ ...data, uid });
+    const workers = [];
+    snapshot.forEach((doc) => {
+      workers.push({ ...doc.data(), uid: doc.id });
     });
     return { workers, count: workers.length };
   } catch (error) {
@@ -160,41 +114,29 @@ async function getUnapprovedWorkers() {
     throw new Error('Unable to fetch workers');
   }
 }
-
 
 async function getClients() {
   try {
     const snapshot = await db.collection('Users').where('role', '==', 'client').get();
-    let clients = [];
-    snapshot.forEach(doc => {
-      const data = doc.data();
-      let uid = doc.id;
-      clients.push({ ...data, uid });
+    const clients = [];
+    snapshot.forEach((doc) => {
+      clients.push({ ...doc.data(), uid: doc.id });
     });
-    const count = snapshot.size; // Number of documents in the collection
-    return { clients, totalClients: count };
+    return { clients, totalClients: snapshot.size };
   } catch (error) {
     console.error('Error fetching clients:', error);
     throw new Error('Unable to fetch clients');
   }
 }
 
-
 async function getAcceptedRequests() {
   try {
     const snapshot = await db.collection('AcceptedRequests').get();
     const acceptedRequests = [];
-
-    snapshot.forEach(doc => {
-      acceptedRequests.push({
-        id: doc.id,
-        ...doc.data()
-      });
+    snapshot.forEach((doc) => {
+      acceptedRequests.push({ id: doc.id, ...doc.data() });
     });
-
-    const count = acceptedRequests.length;
-
-    return { acceptedRequests, totalAcceptedRequests: count };
+    return { acceptedRequests, totalAcceptedRequests: acceptedRequests.length };
   } catch (error) {
     console.error('Error fetching accepted requests:', error);
     throw new Error('Unable to fetch accepted requests');
@@ -204,98 +146,73 @@ async function getAcceptedRequests() {
 async function getJobHistory() {
   try {
     const snapshot = await db.collection('JobsHistory').get();
-    let doneJobs = [];
+    const doneJobs = [];
     snapshot.forEach((doc) => {
       doneJobs.push({ id: doc.id, data: doc.data() });
     });
-    return (doneJobs)
-    console.log(doneJobs);
+    return doneJobs;
   } catch (err) {
     console.error(err);
+    throw err;
   }
 }
 
 async function getComplaints() {
   try {
     const snapshot = await db.collection('Complaints').get();
-    let Complaints = [];
+    const complaints = [];
     snapshot.forEach((doc) => {
-      Complaints.push({ id: doc.id, data: doc.data() });
-    })
-    return Complaints;
+      complaints.push({ id: doc.id, data: doc.data() });
+    });
+    return complaints;
   } catch (err) {
     console.error(err);
+    throw err;
   }
 }
 
-
 async function getWorkerDistribution() {
   try {
-    let EmptyArray = [];
-    let elecCount=0, plumCount=0, maidCount = 0;
-    let result = await db.collection('Users').where('role', '==', 'worker').get();
-    result.forEach(doc=>{
-      EmptyArray.push(doc.data());
-    })
-    return EmptyArray;
+    const result = await db.collection('Users').where('role', '==', 'worker').get();
+    const workers = [];
+    result.forEach((doc) => workers.push(doc.data()));
+    return workers;
   } catch (err) {
     console.error(err);
+    throw err;
   }
 }
 
 async function clearComplaint(id) {
   try {
-    const deleteRef = db.collection('Complaints').doc(id).delete();
-    return "Success"
+    await db.collection('Complaints').doc(id).delete();
+    return 'success';
   } catch (err) {
-    return err;
+    console.error(err);
+    throw err;
   }
 }
 
 async function approveWorker(uid) {
-  try {
-    const workerRef = db.collection('Users').doc(uid);
-    await workerRef.update({ approved: true });
-    return "success";
-  } catch (err) {
-    return err;
-  }
+  await db.collection('Users').doc(uid).update({ approved: true });
+  return 'success';
 }
 
 async function banUser(uid) {
-  try {
-    const workerRef = db.collection('Users').doc(uid);
-    await workerRef.update({ ban: true });
-    return "success";
-  } catch (err) {
-    return err;
-  }
+  await db.collection('Users').doc(uid).update({ ban: true });
+  return 'success';
 }
 
 async function unBanUser(uid) {
-  try {
-    const workerRef = db.collection('Users').doc(uid);
-    await workerRef.update({ ban: false });
-    return "success";
-  } catch (err) {
-    return err;
-  }
-}
-
-
-async function getRatings() {
-  try {
-    const ratingsArray = [];
-
-  } catch (err) {
-
-  }
+  await db.collection('Users').doc(uid).update({ ban: false });
+  return 'success';
 }
 
 module.exports = {
   getUser,
   listAllUsers,
   createUser,
+  updateUser,
   countUsers,
   getAcceptedRequests,
   getWorkers,
@@ -304,8 +221,9 @@ module.exports = {
   getComplaints,
   approveWorker,
   banUser,
-  getUnapprovedWorkers,
   unBanUser,
+  getUnapprovedWorkers,
   getClients,
-  getWorkerDistribution
+  getWorkerDistribution,
+  clearComplaint,
 };

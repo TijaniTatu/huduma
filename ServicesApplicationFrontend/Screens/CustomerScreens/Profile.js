@@ -11,6 +11,8 @@ import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { STORAGE } from '../../firebaseConfig';
 import * as LocalAuthentication from 'expo-local-authentication';
+import { colors, spacing, radius, typography, shadow } from '../../theme/theme';
+import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
 
 
 const ProfileScreen = ({ navigation }) => {
@@ -87,7 +89,7 @@ const ProfileScreen = ({ navigation }) => {
 
   const pickImage = async () => {
     let result = ImagePicker.launchImageLibraryAsync({
-      mediaTypes: ImagePicker.MediaTypeOptions.All,
+      mediaTypes: ['images', 'videos'],
       allowsEditing: true,
       aspect: [4, 3],
       quality: 0.7,
@@ -173,17 +175,20 @@ const ProfileScreen = ({ navigation }) => {
   };
 
   return (
-    <ScrollView style={styles.container}>
+    <ScrollView style={styles.container} contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
       {profileExists ? (
         <View style={styles.profileContainer}>
-          <TouchableOpacity onPress={() => pickImage()}>
-          <Image
+          <TouchableOpacity onPress={() => pickImage()} style={styles.avatarWrap} activeOpacity={0.85}>
+            <Image
               style={styles.image}
               source={{ uri: imageURL }}
               placeholder={{ blurhash }}
               contentFit="cover"
               transition={1000}
             />
+            <View style={styles.cameraBadge}>
+              <MaterialCommunityIcons name="camera" size={16} color="#fff" />
+            </View>
           </TouchableOpacity>
           <View style={styles.header}>
             <Text style={styles.userName}>{name}</Text>
@@ -197,6 +202,8 @@ const ProfileScreen = ({ navigation }) => {
               editable={editMode}
               style={styles.input}
               mode="outlined"
+              outlineColor={colors.border}
+              activeOutlineColor={colors.primary}
             />
             <TextInput
               label="Phone Number"
@@ -206,6 +213,8 @@ const ProfileScreen = ({ navigation }) => {
               keyboardType="phone-pad"
               style={styles.input}
               mode="outlined"
+              outlineColor={colors.border}
+              activeOutlineColor={colors.primary}
             />
             <TextInput
               label="Address"
@@ -214,6 +223,8 @@ const ProfileScreen = ({ navigation }) => {
               editable={editMode}
               style={styles.input}
               mode="outlined"
+              outlineColor={colors.border}
+              activeOutlineColor={colors.primary}
             />
             <TextInput
               label="Secondary Email"
@@ -223,6 +234,8 @@ const ProfileScreen = ({ navigation }) => {
               keyboardType="email-address"
               style={styles.input}
               mode="outlined"
+              outlineColor={colors.border}
+              activeOutlineColor={colors.primary}
             />
             <TouchableOpacity onPress={showDatePickerModal}>
               <TextInput
@@ -267,14 +280,18 @@ const ProfileScreen = ({ navigation }) => {
           </View>
         </View>
       ) : (
-        <View style={styles.profileContainer}>
-          <Text style={styles.noProfileText}>It seems you haven't built your profile yet.</Text>
+        <View style={styles.emptyState}>
+          <MaterialCommunityIcons name="account-circle-outline" size={88} color={colors.textFaint} />
+          <Text style={styles.noProfileTitle}>Build your profile</Text>
+          <Text style={styles.noProfileText}>Add your details so workers can reach and serve you.</Text>
           <Button
             mode="contained"
             style={styles.buildProfileButton}
+            contentStyle={{ height: 50 }}
+            labelStyle={{ fontSize: 16, fontWeight: '700' }}
             onPress={() => navigation.push('BuildProfileScreen')}
           >
-            Build Profile
+            Build profile
           </Button>
         </View>
       )}
@@ -286,70 +303,49 @@ const ProfileScreen = ({ navigation }) => {
 };
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: '#f5f5f5',
-  },
-  profileContainer: {
-    padding: 20,
-  },
-  avatarContainer: {
-    alignItems: 'center',
-    marginBottom: 20,
-  },
-  header: {
-    alignItems: 'center',
-    marginBottom: 20,
-  },
-  userName: {
-    fontSize: 24,
-    fontWeight: 'bold',
-    color: '#333',
-    marginTop: 10,
-    textAlign: 'center',
-  },
-  userEmail: {
-    fontSize: 16,
-    color: '#777',
-    marginTop: 5,
-    textAlign: 'center',
-  },
-  content: {
-    marginTop: 20,
-  },
-  input: {
-    marginBottom: 10,
-  },
-  editButton: {
-    marginTop: 20,
-    borderRadius: 10,
-  },
-  saveButton: {
-    marginTop: 10,
-    borderRadius: 10,
-  },
-  buildProfileButton: {
-    alignSelf: 'center',
-    marginTop: 20,
-  },
-  noProfileText: {
-    textAlign: 'center',
-    marginBottom: 20,
-    fontSize: 16,
-    color: '#777',
-  },
+  container: { flex: 1, backgroundColor: colors.background },
+  scrollContent: { padding: spacing.lg, paddingBottom: spacing.xxl },
+  profileContainer: {},
+  avatarWrap: { alignSelf: 'center', marginTop: spacing.sm },
   image: {
-    width: 200,
-    height: 200,
-    borderRadius: 100,
+    width: 128,
+    height: 128,
+    borderRadius: 64,
     alignSelf: 'center',
+    backgroundColor: colors.surfaceAlt,
+    borderWidth: 3,
+    borderColor: colors.surface,
   },
-  modal: {
-    backgroundColor: 'white',
-    padding: 20,
-    margin: 20,
-    borderRadius: 10,
+  cameraBadge: {
+    position: 'absolute',
+    bottom: 4,
+    right: 4,
+    width: 34,
+    height: 34,
+    borderRadius: 17,
+    backgroundColor: colors.primary,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 2,
+    borderColor: colors.surface,
   },
+  header: { alignItems: 'center', marginTop: spacing.md, marginBottom: spacing.lg },
+  userName: { ...typography.h1, textAlign: 'center' },
+  userEmail: { ...typography.muted, marginTop: spacing.xs, textAlign: 'center' },
+  content: {
+    backgroundColor: colors.surface,
+    borderRadius: radius.lg,
+    padding: spacing.lg,
+    ...shadow.card,
+  },
+  input: { marginBottom: spacing.md, backgroundColor: colors.surface },
+  editButton: { marginTop: spacing.md, borderRadius: radius.md },
+  saveButton: { marginTop: spacing.sm, borderRadius: radius.md },
+  buildProfileButton: { alignSelf: 'stretch', marginTop: spacing.lg, borderRadius: radius.md },
+  emptyState: { alignItems: 'center', justifyContent: 'center', paddingTop: spacing.xxxl },
+  noProfileTitle: { ...typography.h2, marginTop: spacing.md },
+  noProfileText: { textAlign: 'center', marginTop: spacing.xs, marginBottom: spacing.sm, ...typography.muted },
+  modal: { backgroundColor: colors.surface, padding: spacing.lg, margin: spacing.lg, borderRadius: radius.lg },
 });
 
 export default ProfileScreen;

@@ -1,4 +1,5 @@
 
+import { API_BASE } from '../../config';
 import React, { useState, useEffect } from 'react';
 import { Box, Typography, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, Paper, Button, IconButton, CircularProgress } from '@mui/material';
 import { Link } from 'react-router-dom';
@@ -18,13 +19,13 @@ function WorkersList() {
   }, []);
 
   const fetchUser = async () => {
-    fetch('http://localhost:3000/admin/getworkers', { method: 'GET' })
+    fetch(`${API_BASE}/admin/getworkers`, { method: 'GET' })
       .then(response => response.json())
       .then(data => {
         setWorkers(data.workers);
         setCount(data.count);
         setLoading(false);
-        fetch('http://localhost:3000/admin/awaitingapproval', { method: 'GET' })
+        fetch(`${API_BASE}/admin/awaitingapproval`, { method: 'GET' })
           .then(response => response.json())
           .then(Data => {
             console.log(Data);
@@ -45,7 +46,7 @@ function WorkersList() {
 
   const handleBanUser = async (uid) => {
     setLoading(true);
-    fetch(`http://localhost:3000/admin/banuser/${uid}`, { method: 'GET' })
+    fetch(`${API_BASE}/admin/banuser/${uid}`, { method: 'GET' })
       .then(resp => {
         alert('User Banned');
         fetchUser();
@@ -59,7 +60,7 @@ function WorkersList() {
 
   const handleDeleteUser = async (uid) => {
     setLoading(true);
-    fetch(`http://localhost:3000/admin/deleteuser/${uid}`, { method: 'GET' })
+    fetch(`${API_BASE}/admin/deleteuser/${uid}`, { method: 'GET' })
       .then(resp => {
         alert('Worker Deleted');
         setLoading(false);

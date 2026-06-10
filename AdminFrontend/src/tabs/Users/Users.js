@@ -1,3 +1,4 @@
+import { API_BASE } from '../../config';
 import React, { useEffect, useState } from 'react';
 import { Box, Typography, TextField, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, Paper, Button, IconButton, CircularProgress } from '@mui/material';
 import { Link } from 'react-router-dom';
@@ -10,7 +11,7 @@ function Users() {
 
   useEffect(() => {
     // Fetch users 
-    fetch('http://localhost:3000/admin/listallusers', { method: 'GET' })
+    fetch(`${API_BASE}/admin/listallusers`, { method: 'GET' })
       .then(response => response.json())
       .then(data => {
         setUsers(data)
@@ -22,7 +23,7 @@ function Users() {
 
   const handleDeleteUser = async (uid) => {
     setLoading(true);
-    fetch(`http://localhost:3000/admin/deleteuser/${uid}`, { method: 'GET' })
+    fetch(`${API_BASE}/admin/deleteuser/${uid}`, { method: 'GET' })
       .then(resp => {
         alert('Worker Deleted');
         setLoading(false);

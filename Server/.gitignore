@@ -1,1 +1,9 @@
-huduma-app-426919-91a1e983ff6b.json
+node_modules/
+.env
+.env.*
+!.env.example
+
+# Firebase service-account credentials — keep these OUT of git
+*firebase-adminsdk*.json
+huduma-*.json
+serviceAccount*.json

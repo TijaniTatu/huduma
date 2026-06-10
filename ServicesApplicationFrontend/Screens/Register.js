@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Alert, StyleSheet, View, TouchableOpacity } from 'react-native';
-import { Text, TextInput, Button, ActivityIndicator, Portal, Modal, Menu, SegmentedButtons, Appbar } from 'react-native-paper';
+import { Text, TextInput, Button, ActivityIndicator, Portal, Modal, Menu, SegmentedButtons, Avatar } from 'react-native-paper';
 import axios from 'axios';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { createUserWithEmailAndPassword, sendEmailVerification, signInWithEmailAndPassword } from 'firebase/auth';
@@ -8,20 +8,29 @@ import { addDoc, collection, setDoc, doc, getDoc } from 'firebase/firestore'
 import Firebase from '../firebaseConfig';
 import { FIRESTORE_DB } from '../firebaseConfig'
 import { IosAlertStyle } from 'expo-notifications';
+import Screen from '../components/ui/Screen';
+import AppHeader from '../components/ui/AppHeader';
+import { colors, spacing, radius, typography, shadow } from '../theme/theme';
 
 const PasswordModal = ({ visible, hideModal }) => {
-  const containerStyle = { backgroundColor: 'white', padding: 20, margin: 20 };
-
+  const rules = [
+    'At least 8 characters long',
+    'Contains an uppercase letter',
+    'Contains a lowercase letter',
+    'Contains a number',
+    'Contains a special character (e.g. !@#$%^&*)',
+  ];
   return (
     <Portal>
-      <Modal visible={visible} onDismiss={hideModal} contentContainerStyle={containerStyle}>
-        <Text style={{ marginBottom: 10, fontWeight: 'bold' }}>Password Guidelines:</Text>
-        <Text>1. At least 8 characters long</Text>
-        <Text>2. Contains an uppercase letter</Text>
-        <Text>3. Contains a lowercase letter</Text>
-        <Text>4. Contains a number</Text>
-        <Text>5. Contains a special character (e.g., !@#$%^&*)</Text>
-        <Button onPress={hideModal} style={{ marginTop: 20 }}>Close</Button>
+      <Modal visible={visible} onDismiss={hideModal} contentContainerStyle={modalStyles.container}>
+        <Text style={modalStyles.title}>Password guidelines</Text>
+        {rules.map((r, i) => (
+          <View key={i} style={modalStyles.ruleRow}>
+            <Avatar.Icon size={22} icon="check" color={colors.success} style={modalStyles.ruleIcon} />
+            <Text style={modalStyles.ruleText}>{r}</Text>
+          </View>
+        ))}
+        <Button onPress={hideModal} style={{ marginTop: spacing.md }}>Close</Button>
       </Modal>
     </Portal>
   );
@@ -36,6 +45,8 @@ export default function Register({ navigation }) {
   const [loading, setLoading] = useState(false);
   const [modalVisible, setModalVisible] = useState(false);
   const [menuVisible, setMenuVisible] = useState(false);
+  const [showPass, setShowPass] = useState(false);
+  const [showConfirm, setShowConfirm] = useState(false);
 
   const handleRegister = async () => {
     setLoading(true);
@@ -111,91 +122,114 @@ export default function Register({ navigation }) {
   const closeMenu = () => setMenuVisible(false);
 
   return (
-    <>
-      <Appbar.Header>
-        <Appbar.Content title="Create an account" />
-      </Appbar.Header>
-      <View style={styles.container}>
-        {loading ? (
-          <ActivityIndicator animating={true} />
-        ) : (
-          <>
+    <Screen scroll keyboardAvoiding padded={false}>
+      <AppHeader title="Create account" onBack={() => navigation.replace('LoginScreen')} />
+      <View style={styles.body}>
+        <Text style={styles.title}>Join Huduma</Text>
+        <Text style={styles.subtitle}>Create an account to get help or get hired.</Text>
 
-            <TextInput
-              style={{ ...styles.input, backgroundColor: "white" }}
-              value={email}
-              label='email'
-              onChangeText={(text) => setEmail(text)}
-            />
-            <TextInput
-              style={{ ...styles.input, backgroundColor: "white" }}
-              value={password}
-              label='password'
-              onChangeText={(text) => setPassword(text)}
-              secureTextEntry={true}
-              onFocus={showModal}
-            />
-            <TextInput
-              style={{ ...styles.input, backgroundColor: "white" }}
-              value={confirmPassword}
-              label='confirm password'
-              onChangeText={(text) => setConfirmPassword(text)}
-              secureTextEntry={true}
-            />
+        <View style={styles.card}>
+          {loading ? (
+            <ActivityIndicator animating={true} color={colors.primary} style={{ marginVertical: spacing.xxl }} />
+          ) : (
+            <>
+              <TextInput
+                mode="outlined"
+                label="Email"
+                value={email}
+                onChangeText={(text) => setEmail(text)}
+                autoCapitalize="none"
+                keyboardType="email-address"
+                left={<TextInput.Icon icon="email-outline" />}
+                style={styles.input}
+                outlineColor={colors.border}
+                activeOutlineColor={colors.primary}
+              />
+              <TextInput
+                mode="outlined"
+                label="Password"
+                value={password}
+                onChangeText={(text) => setPassword(text)}
+                secureTextEntry={!showPass}
+                onFocus={showModal}
+                left={<TextInput.Icon icon="lock-outline" />}
+                right={<TextInput.Icon icon={showPass ? 'eye-off-outline' : 'eye-outline'} onPress={() => setShowPass(!showPass)} />}
+                style={styles.input}
+                outlineColor={colors.border}
+                activeOutlineColor={colors.primary}
+              />
+              <TextInput
+                mode="outlined"
+                label="Confirm password"
+                value={confirmPassword}
+                onChangeText={(text) => setConfirmPassword(text)}
+                secureTextEntry={!showConfirm}
+                left={<TextInput.Icon icon="lock-check-outline" />}
+                right={<TextInput.Icon icon={showConfirm ? 'eye-off-outline' : 'eye-outline'} onPress={() => setShowConfirm(!showConfirm)} />}
+                style={styles.input}
+                outlineColor={colors.border}
+                activeOutlineColor={colors.primary}
+              />
 
-            <SegmentedButtons
-              value={role}
-              onValueChange={setRole}
-              buttons={
-                [
-                  {
-                    value: 'client',
-                    label: 'I want help'
-                  },
-                  {
-                    value: 'worker',
-                    label: 'I want to work'
-                  }
-                ]
-              }
-            />
-            <Button mode='contained' style={styles.input} onPress={handleRegister}> Send Email Verification </Button>
-          </>
-        )}
-        {accountCreated ?
-          <Button style={styles.input} mode='elevated' onPress={() => handleRegisterNext()}> Next </Button> : <></>}
+              <Text style={styles.roleLabel}>I want to...</Text>
+              <SegmentedButtons
+                value={role}
+                onValueChange={setRole}
+                style={styles.segmented}
+                buttons={[
+                  { value: 'client', label: 'Get help', icon: 'hand-heart-outline' },
+                  { value: 'worker', label: 'Get work', icon: 'briefcase-outline' },
+                ]}
+              />
+              <Button
+                mode="contained"
+                onPress={handleRegister}
+                style={styles.primaryBtn}
+                contentStyle={styles.primaryBtnContent}
+                labelStyle={styles.primaryBtnLabel}
+              >
+                Send email verification
+              </Button>
+            </>
+          )}
+          {accountCreated ? (
+            <Button style={styles.input} mode='elevated' onPress={() => handleRegisterNext()}> Next </Button>
+          ) : null}
 
-        <PasswordModal visible={modalVisible} hideModal={hideModal} />
+          <PasswordModal visible={modalVisible} hideModal={hideModal} />
+        </View>
+
+        <View style={styles.row}>
+          <Text style={styles.muted}>Already have an account? </Text>
+          <TouchableOpacity onPress={()=> navigation.replace("LoginScreen")}>
+            <Text style={styles.textLink}>Log in</Text>
+          </TouchableOpacity>
+        </View>
       </View>
-      <View style={styles.row}>
-        <Text style={styles.Information}>
-          Already have an account ? 
-        </Text>
-        <TouchableOpacity onPress={()=> navigation.replace("LoginScreen")}>
-            <Text style={styles.textLink}> 
-              Login Here
-            </Text>
-        </TouchableOpacity>
-      </View>
-    </>
+    </Screen>
   )
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, marginHorizontal: 20, marginTop: 40 },
-  input: { marginVertical: 5, borderRadius: 0 },
-  row: {
-    alignItems: "center",
-    flexDirection: "row",
-    marginVertical: 20,
-  },
-  textContainer: { alignContent: 'center', alignItems: 'center' },
-  Information: {
-    color: 'purple',
-    fontSize: 15,
-  },
-  textLink: {
-    color:'orange',
-    marginLeft:2
-  }
+  body: { paddingHorizontal: spacing.xl, paddingBottom: spacing.xl },
+  title: { ...typography.h1, marginTop: spacing.sm },
+  subtitle: { ...typography.muted, marginBottom: spacing.lg },
+  card: { backgroundColor: colors.surface, borderRadius: radius.lg, padding: spacing.lg, ...shadow.card },
+  input: { marginBottom: spacing.md, backgroundColor: colors.surface },
+  roleLabel: { ...typography.label, marginBottom: spacing.sm },
+  segmented: { marginBottom: spacing.lg },
+  primaryBtn: { borderRadius: radius.md },
+  primaryBtnContent: { height: 50 },
+  primaryBtnLabel: { fontSize: 16, fontWeight: '700' },
+  row: { alignItems: 'center', flexDirection: 'row', justifyContent: 'center', marginTop: spacing.xl },
+  muted: { ...typography.muted },
+  textLink: { color: colors.primary, fontWeight: '700', fontSize: 14 },
+});
+
+const modalStyles = StyleSheet.create({
+  container: { backgroundColor: colors.surface, padding: spacing.xl, marginHorizontal: spacing.xl, borderRadius: radius.lg },
+  title: { ...typography.h3, marginBottom: spacing.md },
+  ruleRow: { flexDirection: 'row', alignItems: 'center', marginBottom: spacing.sm },
+  ruleIcon: { backgroundColor: colors.successContainer, marginRight: spacing.sm },
+  ruleText: { ...typography.body, flex: 1 },
 });

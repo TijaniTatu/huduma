@@ -4,6 +4,7 @@ import { Text, TextInput, Button, Switch, HelperText, Menu, Divider } from 'reac
 
 import axios from 'axios';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { colors, spacing, radius, typography } from '../theme/theme';
 
 export default function Home({navigation}) {
 
@@ -42,22 +43,27 @@ export default function Home({navigation}) {
 
   return (
     <View style={styles.container}>
-      <Button onPress={()=> handleLogOut()}> LOG OUT  </Button>
-      <Button onPress={()=> clearStorage()}>CLEAR STORAGE </Button>
-      <Button onPress={()=> readStorage()}> SHOW STORAGE </Button>
+      <Text style={styles.title}>Account & Storage</Text>
+      <Text style={styles.subtitle}>Developer utilities</Text>
+
+      <Button mode="contained" icon="logout" onPress={()=> handleLogOut()} style={styles.btn} contentStyle={styles.btnContent} labelStyle={styles.btnLabel}>
+        Log out
+      </Button>
+      <Button mode="outlined" icon="trash-can-outline" onPress={()=> clearStorage()} style={styles.btn} contentStyle={styles.btnContent} textColor={colors.danger}>
+        Clear storage
+      </Button>
+      <Button mode="outlined" icon="database-search-outline" onPress={()=> readStorage()} style={styles.btn} contentStyle={styles.btnContent}>
+        Show storage
+      </Button>
     </View>
   )
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, justifyContent: "center", marginHorizontal: 30 },
-  input: { marginVertical: 5, borderRadius: 0 },
-  row: {
-    alignItems: "center",
-    flexDirection: "row",
-    marginVertical: 20,
-    justifyContent: "space-between",
-  },
-  textContainer: { alignContent: 'center', alignItems: 'center' }
-
+  container: { flex: 1, justifyContent: "center", paddingHorizontal: spacing.xl, backgroundColor: colors.background },
+  title: { ...typography.h1, textAlign: 'center' },
+  subtitle: { ...typography.muted, textAlign: 'center', marginBottom: spacing.xl },
+  btn: { marginVertical: spacing.xs, borderRadius: radius.md },
+  btnContent: { height: 48 },
+  btnLabel: { fontWeight: '700' },
 });
